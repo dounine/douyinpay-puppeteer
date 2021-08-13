@@ -23,5 +23,7 @@
     "mime-types": "^2.1.32",
     "puppeteer": "^10.2.0",
     "puppeteer-core": "^10.2.0"
+  },
+  "devDependencies": {
   }
 }
