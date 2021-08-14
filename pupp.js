@@ -36,13 +36,21 @@ module.exports = {
             });
             let timeoutSetup = "";
             const qrcodePath = `./qrcode/${orderId}.png`;
+            let success = false;
             setTimeout(async () => {
-                await fs.unlink(qrcodePath)
-                await browser.close()
-                resolve({
-                    "message": "timeout",
-                    "setup": timeoutSetup
-                });
+                if (!success) {
+                    console.log("timeout", orderId)
+                    try {
+                        await fs.unlink(qrcodePath)
+                    } catch (ee) {
+                        console.error(ee)
+                    }
+                    await browser.close()
+                    resolve({
+                        "message": "timeout",
+                        "setup": timeoutSetup
+                    });
+                }
             }, timeout - (new Date().getTime() - start.getTime()))
             const page = await browser.newPage();
             await page.setRequestInterception(true);
@@ -169,9 +177,11 @@ module.exports = {
                     if (intervalCount > 60) {
                         console.log("not pay", orderId)
                         clearInterval(interval);
-                        await fs.unlink(qrcodePath).catch(e => {
-                            console.log(e)
-                        })
+                        try {
+                            await fs.unlink(qrcodePath)
+                        } catch (ee) {
+                            console.error(ee)
+                        }
                         await browser.close()
                         if (callback) {
                             await axios.post(callback, {
@@ -182,11 +192,13 @@ module.exports = {
                             })
                         }
                     } else if (page.url().includes("result?app_id")) {
-                        console.log("pay success", orderId)
-                        await fs.unlink(qrcodePath).catch(e => {
-                            console.log(e)
-                        })
                         clearInterval(interval);
+                        console.log("pay success", orderId)
+                        try {
+                            await fs.unlink(qrcodePath)
+                        } catch (ee) {
+                            console.error(ee)
+                        }
                         await browser.close()
                         if (callback) {
                             await axios.post(callback, {
@@ -199,15 +211,18 @@ module.exports = {
                     }
                     intervalCount += 1;
                 }, 1000)
+                success = true;
                 resolve({
                     "qrcode": `${config[config["model"]]}/file/${orderId}.png`
                 })
             } catch (e) {
                 console.error(e)
                 await browser.close()
-                await fs.unlink(qrcodePath).catch(e => {
-                    console.log(e)
-                })
+                try {
+                    await fs.unlink(qrcodePath)
+                } catch (ee) {
+                    console.log(ee)
+                }
                 resolve({
                     "message": "fail",
                     "setup": timeoutSetup
