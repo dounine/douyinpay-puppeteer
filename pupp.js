@@ -26,6 +26,44 @@ axios.interceptors.response.use(undefined, function axiosRetryInterceptor(err) {
 });
 
 module.exports = {
+    login: async function (url) {
+        return new Promise(async (resolve, reject) => {
+            const browser = await puppeteer.launch({
+                headless: true,
+                devtools: false,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+            const page = await browser.newPage();
+            await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
+            await page.waitForTimeout(1000)
+            const img = await page.waitForSelector(".qrcode-img")
+            const loginPath = `./qrcode/login.png`;
+            await img.screenshot({
+                path: loginPath, omitBackground: true
+            });
+            let intervalCount = 0;
+            const interval = setInterval(async () => {
+                if (intervalCount > 55) {
+                    console.log("超时未登录")
+                    clearInterval(interval);
+                    await browser.close();
+                } else if (page.url().includes("is_new_connect")) {
+                    console.log("登录成功")
+                    clearInterval(interval);
+                    const cookies = await page.cookies();
+                    await fs.writeFile("./cookie.json", JSON.stringify(cookies))
+                    await axios.post(url, {
+                        cookies
+                    }).then(response => {
+                        console.log("登录成功回调结果：" + JSON.stringify(response.data))
+                    })
+                    await browser.close()
+                }
+                intervalCount += 1
+            }, 1000)
+            resolve("./qrcode/login.png");
+        })
+    },
     qrcode: async function ({orderId, id, money, timeout = 8000, callback}) {
         return new Promise(async (resolve, reject) => {
             const start = new Date();
@@ -37,6 +75,7 @@ module.exports = {
             let timeoutSetup = "";
             const qrcodePath = `./qrcode/${orderId}.png`;
             let success = false;
+            let successTime = new Date().getTime();
             setTimeout(async () => {
                 if (!success) {
                     console.log(`超时 -> ${timeoutSetup} -> ${timeout} -> ${orderId}`)
@@ -176,7 +215,7 @@ module.exports = {
                 // const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
                 let intervalCount = 0
                 let interval = setInterval(async () => {
-                    if (intervalCount > 60) {
+                    if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
                         console.log("not pay", orderId)
                         clearInterval(interval);
                         if (success) {
@@ -222,6 +261,7 @@ module.exports = {
                     intervalCount += 1;
                 }, 1000)
                 success = true;
+                successTime = new Date().getTime();
                 resolve({
                     "qrcode": `${config[config["model"]]}/file/${orderId}.png`
                 })

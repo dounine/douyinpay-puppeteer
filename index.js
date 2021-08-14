@@ -2,7 +2,7 @@ const Koa = require('koa');
 const Router = require('koa-router');
 const fs = require("fs");
 const path = require("path");
-const {qrcode} = require("./pupp");
+const {qrcode, login} = require("./pupp");
 const bodyParser = require('koa-bodyparser');
 const static = require('koa-static-router')
 const app = new Koa();
@@ -24,9 +24,13 @@ app.use(async (ctx, next) => {
     const ms = Date.now() - start;
     ctx.set('X-Response-Time', `${ms}ms`);
 });
+router.get('/login.png', async (ctx, next) => {
+    const result = await login(ctx.request.header.url);
+    ctx.response.body = fs.createReadStream(path.join(__dirname, result));
+})
 router.post('/cookies', async (ctx, next) => {
     const body = ctx.response.body;
-    await fsPromise.writeFile("./cookie.json", JSON.stringify(body))
+    await fsPromise.writeFile("./cookie.json", JSON.stringify(body.cookies))
     ctx.response.body = {
         "code": "ok"
     };
