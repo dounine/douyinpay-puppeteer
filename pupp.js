@@ -39,7 +39,7 @@ module.exports = {
             let success = false;
             setTimeout(async () => {
                 if (!success) {
-                    console.log("timeout", orderId)
+                    console.log(`超时 -> ${timeoutSetup} -> ${timeout} -> ${orderId}`)
                     if (success) {
                         try {
                             await fs.unlink(qrcodePath)
@@ -192,7 +192,9 @@ module.exports = {
                                 "orderId": orderId,
                                 "pay": false
                             }).then(response => {
-                                console.log(response.data)
+                                console.log("充值失败回调结果：" + JSON.stringify(response.data))
+                            }).catch(e => {
+                                console.log("充值失败无法回调服务器")
                             })
                         }
                     } else if (page.url().includes("result?app_id")) {
@@ -211,7 +213,9 @@ module.exports = {
                                 "orderId": orderId,
                                 "pay": true
                             }).then(response => {
-                                console.log("callback result", response.data)
+                                console.log("充值成功回调结果：" + JSON.stringify(response.data))
+                            }).catch(e => {
+                                console.log("充值成功无法回调服务器")
                             })
                         }
                     }
@@ -222,7 +226,7 @@ module.exports = {
                     "qrcode": `${config[config["model"]]}/file/${orderId}.png`
                 })
             } catch (e) {
-                console.error(e)
+                console.error("异常：" + e)
                 await browser.close()
                 resolve({
                     "message": "fail",
