@@ -157,7 +157,7 @@ module.exports = {
                     //点击微信支付
                     const targetPage = page;
                     const frame = targetPage.mainFrame();
-                    const element = await frame.waitForSelector("html > body > div > div > div.bounce-container > div.bounce-content > div > div:nth-child(1) > div.pay > ul > li:nth-child(1) > div");
+                    const element = await frame.waitForSelector("div.pay-channel-wx");
                     await element.click();
                 }
                 {
