@@ -1,13 +1,16 @@
 const Koa = require('koa');
 const Router = require('koa-router');
 const fs = require("fs");
+const path = require("path");
 const {qrcode} = require("./pupp");
 const bodyParser = require('koa-bodyparser');
+const static = require('koa-static-router')
 const app = new Koa();
 const router = new Router();
 fs.mkdir("./qrcode", (r) => {
     console.log("create qrcode dir fold ", r)
 })
+app.use(static({dir: "./qrcode", router: "/file"}))
 app.use(bodyParser());
 app.use(async (ctx, next) => {
     await next();
