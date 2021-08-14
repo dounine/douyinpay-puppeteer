@@ -205,7 +205,9 @@ module.exports = {
             } catch (e) {
                 console.error(e)
                 await browser.close()
-                await fs.unlink(qrcodePath)
+                await fs.unlink(qrcodePath).catch(e => {
+                    console.log(e)
+                })
                 resolve({
                     "message": "fail",
                     "setup": timeoutSetup
