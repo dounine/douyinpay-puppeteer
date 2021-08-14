@@ -40,10 +40,12 @@ module.exports = {
             setTimeout(async () => {
                 if (!success) {
                     console.log("timeout", orderId)
-                    try {
-                        await fs.unlink(qrcodePath)
-                    } catch (ee) {
-                        console.error(ee)
+                    if (success) {
+                        try {
+                            await fs.unlink(qrcodePath)
+                        } catch (ee) {
+                            console.error(ee)
+                        }
                     }
                     await browser.close()
                     resolve({
@@ -177,10 +179,12 @@ module.exports = {
                     if (intervalCount > 60) {
                         console.log("not pay", orderId)
                         clearInterval(interval);
-                        try {
-                            await fs.unlink(qrcodePath)
-                        } catch (ee) {
-                            console.error(ee)
+                        if (success) {
+                            try {
+                                await fs.unlink(qrcodePath)
+                            } catch (ee) {
+                                console.error(ee)
+                            }
                         }
                         await browser.close()
                         if (callback) {
@@ -194,10 +198,12 @@ module.exports = {
                     } else if (page.url().includes("result?app_id")) {
                         clearInterval(interval);
                         console.log("pay success", orderId)
-                        try {
-                            await fs.unlink(qrcodePath)
-                        } catch (ee) {
-                            console.error(ee)
+                        if (success) {
+                            try {
+                                await fs.unlink(qrcodePath)
+                            } catch (ee) {
+                                console.error(ee)
+                            }
                         }
                         await browser.close()
                         if (callback) {
@@ -218,11 +224,6 @@ module.exports = {
             } catch (e) {
                 console.error(e)
                 await browser.close()
-                try {
-                    await fs.unlink(qrcodePath)
-                } catch (ee) {
-                    console.log(ee)
-                }
                 resolve({
                     "message": "fail",
                     "setup": timeoutSetup
