@@ -169,7 +169,9 @@ module.exports = {
                     if (intervalCount > 60) {
                         console.log("not pay", orderId)
                         clearInterval(interval);
-                        await fs.unlink(qrcodePath)
+                        await fs.unlink(qrcodePath).catch(e => {
+                            console.log(e)
+                        })
                         await browser.close()
                         if (callback) {
                             await axios.post(callback, {
@@ -181,7 +183,9 @@ module.exports = {
                         }
                     } else if (page.url().includes("result?app_id")) {
                         console.log("pay success", orderId)
-                        await fs.unlink(qrcodePath)
+                        await fs.unlink(qrcodePath).catch(e => {
+                            console.log(e)
+                        })
                         clearInterval(interval);
                         await browser.close()
                         if (callback) {
