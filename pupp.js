@@ -40,11 +40,8 @@ module.exports = {
                 await fs.unlink(qrcodePath)
                 await browser.close()
                 resolve({
-                    "code": "fail",
                     "message": "timeout",
-                    "data": {
-                        "setup": timeoutSetup
-                    }
+                    "setup": timeoutSetup
                 });
             }, timeout - (new Date().getTime() - start.getTime()))
             const page = await browser.newPage();
@@ -176,11 +173,8 @@ module.exports = {
                         await browser.close()
                         if (callback) {
                             await axios.post(callback, {
-                                "code": "ok",
-                                "data": {
-                                    "orderId": orderId,
-                                    "pay": false
-                                }
+                                "orderId": orderId,
+                                "pay": false
                             }).then(response => {
                                 console.log(response.data)
                             })
@@ -192,11 +186,8 @@ module.exports = {
                         await browser.close()
                         if (callback) {
                             await axios.post(callback, {
-                                "code": "ok",
-                                "data": {
-                                    "orderId": orderId,
-                                    "pay": true
-                                }
+                                "orderId": orderId,
+                                "pay": true
                             }).then(response => {
                                 console.log("callback result", response.data)
                             })
@@ -205,21 +196,15 @@ module.exports = {
                     intervalCount += 1;
                 }, 1000)
                 resolve({
-                    "code": "ok",
-                    "data": {
-                        "qrcode": `${config[config["model"]]}/file/${orderId}.png`
-                    }
+                    "qrcode": `${config[config["model"]]}/file/${orderId}.png`
                 })
             } catch (e) {
                 console.error(e)
                 await browser.close()
                 await fs.unlink(qrcodePath)
                 resolve({
-                    "code": "fail",
                     "message": "fail",
-                    "data": {
-                        "setup": timeoutSetup
-                    }
+                    "setup": timeoutSetup
                 })
             }
         })
