@@ -2,6 +2,8 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: qrcode-pv-nas
+  labels:
+    pv: qrcode
 spec:
   capacity:
     storage: 10Gi
@@ -26,7 +28,10 @@ spec:
   storageClassName: nas
   resources:
     requests:
-      storage: 500G
+      storage: 10G
+  selector:
+    matchLabels:
+      pv: qrcode
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -49,9 +54,9 @@ spec:
         k8s.aliyun.com/eci-with-eip: "true"
     spec:
       volumes:
-        - name: qrcode-pvc-nas
+        - name: my-pvc-nas
           persistentVolumeClaim:
-            claimName: pvc-nas
+            claimName: qrcode-pvc-nas
       containers:
         - name: qrcode
           image: registry-vpc.cn-hangzhou.aliyuncs.com/xinghan-docker/douyinpay-puppeteer:1.0.0 #replace it with your exactly <image_name:tags>
@@ -61,7 +66,7 @@ spec:
             - name: SERVER_PORT
               value: "3000"
           volumeMounts:
-            - name: qrcode-pvc-nas
+            - name: my-pvc-nas
               mountPath: "/app/qrcode"
           ports:
             - name: http
