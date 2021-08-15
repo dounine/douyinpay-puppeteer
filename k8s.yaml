@@ -16,6 +16,7 @@ spec:
       annotations:
         k8s.aliyun.com/eci-use-specs: "ecs.c5.large"
         k8s.aliyun.com/eci-spot-strategy: "SpotAsPriceGo"
+        k8s.aliyun.com/eci-with-eip: "true"
     spec:
       containers:
         - name: qrcode
