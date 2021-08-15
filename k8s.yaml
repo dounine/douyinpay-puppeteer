@@ -24,7 +24,7 @@ spec:
             - name: "SERVER_DOMAIN"
               value: "http://dyqr.61week.com"
             - name: "SERVER_PORT"
-              value: 3000
+              value: "3000"
           ports:
             - name: http
               containerPort: 3000
