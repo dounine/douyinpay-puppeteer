@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qrcode
+  labels:
+    app: qrcode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qrcode
+  template:
+    metadata:
+      labels:
+        app: qrcode
+      annotations:
+        k8s.aliyun.com/eci-use-specs: "ecs.c5.large"
+        k8s.aliyun.com/eci-spot-strategy: "SpotAsPriceGo"
+    spec:
+      containers:
+        - name: qrcode
+          image: registry-vpc.cn-hangzhou.aliyuncs.com/xinghan-docker/douyinpay-puppeteer:1.0.0 #replace it with your exactly <image_name:tags>
+          ports:
+            - name: http
+              containerPort: 4000
+              protocol: TCP
+          resources:
+            requests:                         ##必须设置，不然HPA无法运行。
+              cpu: 2000m
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: qrcode-hpa
+  namespace: default
+spec:
+  scaleTargetRef:                             ##绑定名为nginx的Deployment。
+    apiVersion: apps/v1
+    kind: Deployment
+    name: qrcode
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: 60
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qrcode
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 4000
+  selector:
+    app: qrcode
+  type: ClusterIP
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: qrcode
+spec:
+  rules:
+    - host: dyqr.61week.com
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: qrcode
+              servicePort: 80

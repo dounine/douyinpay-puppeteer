@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const fs = require("fs").promises;
 const path = require('path');
 const mineType = require('mime-types');
+const os = require('os');
 const axios = require("axios");
 
 axios.defaults.retry = 4;
@@ -24,7 +25,23 @@ axios.interceptors.response.use(undefined, function axiosRetryInterceptor(err) {
     });
 });
 
+function getIPAdress() {
+    let interfaces = os.networkInterfaces();
+    for (let devName in interfaces) {
+        let iface = interfaces[devName];
+        for (let i = 0; i < iface.length; i++) {
+            let alias = iface[i];
+            if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                return alias.address;
+            }
+        }
+    }
+}
+
 module.exports = {
+    myIp: function () {
+        return getIPAdress();
+    },
     login: async function (url) {
         return new Promise(async (resolve, reject) => {
             const browser = await puppeteer.launch({
@@ -75,20 +92,21 @@ module.exports = {
             const qrcodePath = `./qrcode/${orderId}.png`;
             let success = false;
             let successTime = new Date().getTime();
-            setTimeout(async () => {
+            let timer = setTimeout(async () => {
+                if (success) {
+                    try {
+                        await fs.unlink(qrcodePath)
+                    } catch (ee) {
+                        console.error(ee)
+                    }
+                }
                 if (!success) {
                     console.log(`超时 -> ${timeoutSetup} -> ${timeout} -> ${orderId}`)
-                    if (success) {
-                        try {
-                            await fs.unlink(qrcodePath)
-                        } catch (ee) {
-                            console.error(ee)
-                        }
-                    }
                     await browser.close()
                     resolve({
                         "message": "timeout",
-                        "setup": timeoutSetup
+                        "setup": timeoutSetup,
+                        "node": getIPAdress()
                     });
                 }
             }, timeout - (new Date().getTime() - start.getTime()))
@@ -99,7 +117,7 @@ module.exports = {
             page.on("request", async interceptedRequest => {
                 let url = interceptedRequest.url();
                 if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg")) {
-                    interceptedRequest.abort();
+                    await interceptedRequest.abort();
                 } else if (rejectUrls.find(el => url.includes(el))) {
                     await interceptedRequest.abort();
                 } else if (cacheUrls.find(el => url.includes(el))) {
@@ -225,7 +243,8 @@ module.exports = {
                         if (callback) {
                             await axios.post(callback, {
                                 "orderId": orderId,
-                                "pay": false
+                                "pay": false,
+                                "node": getIPAdress()
                             }).then(response => {
                                 console.log("充值失败回调结果：" + JSON.stringify(response.data))
                             }).catch(e => {
@@ -246,7 +265,8 @@ module.exports = {
                         if (callback) {
                             await axios.post(callback, {
                                 "orderId": orderId,
-                                "pay": true
+                                "pay": true,
+                                "node": getIPAdress()
                             }).then(response => {
                                 console.log("充值成功回调结果：" + JSON.stringify(response.data))
                             }).catch(e => {
@@ -258,15 +278,18 @@ module.exports = {
                 }, 1000)
                 success = true;
                 successTime = new Date().getTime();
+                clearTimeout(timer);
                 resolve({
-                    "qrcode": `${process.env.SERVER_DOMAIN}/file/${orderId}.png`
+                    "qrcode": `${process.env.SERVER_DOMAIN || "http://localhost:3000"}/file/${orderId}.png`,
+                    "node": getIPAdress()
                 })
             } catch (e) {
                 console.error("异常：" + e)
                 await browser.close()
                 resolve({
                     "message": "fail",
-                    "setup": timeoutSetup
+                    "setup": timeoutSetup,
+                    "node": getIPAdress()
                 })
             }
         })
