@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qrcode-pvc-nas
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nas
+  resources:
+    requests:
+      storage: 500G
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,6 +18,10 @@ metadata:
     app: qrcode
 spec:
   replicas: 1
+  volumes:
+    - name: qrcode-pvc-nas
+      persistentVolumeClaim:
+        claimName: qrcode-pvc-nas
   selector:
     matchLabels:
       app: qrcode
@@ -22,10 +38,15 @@ spec:
         - name: qrcode
           image: registry-vpc.cn-hangzhou.aliyuncs.com/xinghan-docker/douyinpay-puppeteer:1.0.0 #replace it with your exactly <image_name:tags>
           env:
-            - name: "SERVER_DOMAIN"
+            - name: SERVER_DOMAIN
               value: "http://dyqr.61week.com"
-            - name: "SERVER_PORT"
+            - name: SERVER_PORT
               value: "3000"
+          volumeMounts:
+            - name: qrcode-pvc-nas
+              mountPath: "/alllog/test_log/douyinpay/qrcode"
+            - name: workdir
+              mountPath: "/app/qrcode"
           ports:
             - name: http
               containerPort: 3000
