@@ -18,10 +18,6 @@ metadata:
     app: qrcode
 spec:
   replicas: 1
-  volumes:
-    - name: qrcode-pvc-nas
-      persistentVolumeClaim:
-        claimName: qrcode-pvc-nas
   selector:
     matchLabels:
       app: qrcode
@@ -34,6 +30,10 @@ spec:
         k8s.aliyun.com/eci-spot-strategy: "SpotAsPriceGo"
         k8s.aliyun.com/eci-with-eip: "true"
     spec:
+      volumes:
+        - name: qrcode-pvc-nas
+          persistentVolumeClaim:
+            claimName: qrcode-pvc-nas
       containers:
         - name: qrcode
           image: registry-vpc.cn-hangzhou.aliyuncs.com/xinghan-docker/douyinpay-puppeteer:1.0.0 #replace it with your exactly <image_name:tags>
