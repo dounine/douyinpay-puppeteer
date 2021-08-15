@@ -9,6 +9,7 @@ const cors = require('koa2-cors');
 const app = new Koa();
 const router = new Router();
 const fsPromise = fs.promises;
+const server_port = process.env.SERVER_PORT || 3000
 fs.mkdir("./qrcode", (r) => {
     console.log("create qrcode dir fold ", r)
 })
@@ -58,6 +59,6 @@ router.post('/qrcode', async (ctx, next) => {
     })
 });
 app.use(router.routes()).use(router.allowedMethods());
-app.listen(3000, () => {
-    console.log("start server for 3000")
+app.listen(server_port, () => {
+    console.log(`start server for ${server_port}`)
 });

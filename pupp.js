@@ -3,7 +3,6 @@ const fs = require("fs").promises;
 const path = require('path');
 const mineType = require('mime-types');
 const axios = require("axios");
-const config = require("./config.json");
 
 axios.defaults.retry = 4;
 axios.defaults.retryDelay = 1000;
@@ -31,7 +30,7 @@ module.exports = {
             const browser = await puppeteer.launch({
                 headless: true,
                 devtools: false,
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
             });
             const page = await browser.newPage();
             await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
@@ -70,7 +69,7 @@ module.exports = {
             const browser = await puppeteer.launch({
                 headless: true,
                 devtools: false,
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
+                args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             });
             let timeoutSetup = "";
             const qrcodePath = `./qrcode/${orderId}.png`;
@@ -100,13 +99,10 @@ module.exports = {
             page.on("request", async interceptedRequest => {
                 let url = interceptedRequest.url();
                 if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg")) {
-                    // console.log("abort", url)
                     interceptedRequest.abort();
                 } else if (rejectUrls.find(el => url.includes(el))) {
-                    // console.log("abort", url)
                     await interceptedRequest.abort();
                 } else if (cacheUrls.find(el => url.includes(el))) {
-                    // console.log("cache", url)
                     let endUrl = cacheUrls.find(el => url.includes(el))
                     await interceptedRequest.respond({
                         contentType: "application/javascript",
@@ -263,7 +259,7 @@ module.exports = {
                 success = true;
                 successTime = new Date().getTime();
                 resolve({
-                    "qrcode": `${config[config["model"]]}/file/${orderId}.png`
+                    "qrcode": `${process.env.SERVER_DOMAIN}/file/${orderId}.png`
                 })
             } catch (e) {
                 console.error("异常：" + e)
