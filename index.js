@@ -34,6 +34,11 @@ app.use(async (ctx, next) => {
     const ms = Date.now() - start;
     ctx.set('X-Response-Time', `${ms}ms`);
 });
+router.get("/", async (ctx, next) => {
+    ctx.response.body = {
+        "node": myIp()
+    }
+})
 router.get('/login.png', async (ctx, next) => {
     const result = await login(ctx.request.header.url);
     ctx.response.body = fs.createReadStream(path.join(__dirname, result));
