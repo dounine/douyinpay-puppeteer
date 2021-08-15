@@ -1,4 +1,22 @@
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qrcode-pv-nas
+spec:
+  capacity:
+    storage: 10Gi
+  storageClassName: nas
+  persistentVolumeReclaimPolicy: Retain
+  accessModes:
+    - ReadWriteMany
+  flexVolume:
+    driver: "alicloud/nas"
+    options:
+      server: "03fa54b19b-qad78.cn-hangzhou.nas.aliyuncs.com"
+      path: "/test_log/douyinpay/qrcode"
+      vers: "3"
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: qrcode-pvc-nas
@@ -34,8 +52,6 @@ spec:
         - name: qrcode-pvc-nas
           persistentVolumeClaim:
             claimName: pvc-nas
-        - name: workdir
-          emptyDir: {}
       containers:
         - name: qrcode
           image: registry-vpc.cn-hangzhou.aliyuncs.com/xinghan-docker/douyinpay-puppeteer:1.0.0 #replace it with your exactly <image_name:tags>
@@ -46,8 +62,6 @@ spec:
               value: "3000"
           volumeMounts:
             - name: qrcode-pvc-nas
-              mountPath: "/alllog/test_log/douyinpay/qrcode"
-            - name: workdir
               mountPath: "/app/qrcode"
           ports:
             - name: http
