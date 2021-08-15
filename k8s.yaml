@@ -34,6 +34,8 @@ spec:
         - name: qrcode-pvc-nas
           persistentVolumeClaim:
             claimName: qrcode-pvc-nas
+        - name: workdir
+          emptyDir: {}
       containers:
         - name: qrcode
           image: registry-vpc.cn-hangzhou.aliyuncs.com/xinghan-docker/douyinpay-puppeteer:1.0.0 #replace it with your exactly <image_name:tags>
