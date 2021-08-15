@@ -33,7 +33,7 @@ spec:
       volumes:
         - name: qrcode-pvc-nas
           persistentVolumeClaim:
-            claimName: qrcode-pvc-nas
+            claimName: pvc-nas
         - name: workdir
           emptyDir: {}
       containers:
