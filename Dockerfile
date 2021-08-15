@@ -6,8 +6,8 @@ WORKDIR /app
 ADD cache /app/cache
 ADD package.json /app
 RUN npm install
-COPY *.json /app
-COPY *.js /app
+COPY *.json /app/
+COPY *.js /app/
 EXPOSE 4000
 ENTRYPOINT ["/usr/bin/dumb-init"]
 CMD ["node","index.js"]
