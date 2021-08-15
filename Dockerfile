@@ -1,13 +1,13 @@
 FROM dounine/puppeteer:latest
 ENV NODE_ENV="pro" \
-    SERVER_DOMAIN="http://localhost:4000" \
-    SERVER_PORT="4000"
+    SERVER_DOMAIN="http://localhost:3000" \
+    SERVER_PORT="3000"
 WORKDIR /app
 ADD cache /app/cache
 ADD package.json /app
 RUN npm install
 COPY *.json /app/
 COPY *.js /app/
-EXPOSE 4000
+EXPOSE 3000
 ENTRYPOINT ["/usr/bin/dumb-init"]
 CMD ["node","index.js"]
