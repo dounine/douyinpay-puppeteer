@@ -11,25 +11,27 @@ const router = new Router();
 const fsPromise = fs.promises;
 const server_port = process.env.SERVER_PORT || 3000;
 
+
 (async () => {
     let cluster = await clusterPuppeteer();
-    let open = function () {
+    let open = async function open({cluster}) {
         cluster.queue(async ({page}) => {
-            const cookieString = await fs.readFile("./cookie.json");
-            const cookies = JSON.parse(cookieString);
+            let cookieString = await fsPromise.readFile("./cookie.json");
+            let cookies = JSON.parse(cookieString);
             await page.setCookie(...cookies);
             await page.setViewport({
                 width: 1920,
                 height: 1080
             });
             await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
+            console.log("缓存页面已打开")
             await page.waitForTimeout(50 * 1000);
         })
     }
-    setInterval(function () {
-        open();
+    setInterval(async function () {
+        await open({cluster});
     }, 60 * 1000);
-    open();
+    await open({cluster});
     fs.mkdir("./qrcode", (r) => {
         console.log(new Date(), "create qrcode dir fold ", r)
     })
