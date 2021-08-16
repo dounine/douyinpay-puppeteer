@@ -59,7 +59,7 @@ spec:
             claimName: qrcode-pvc-nas
       containers:
         - name: qrcode
-          image: registry-vpc.cn-hangzhou.aliyuncs.com/xinghan-docker/douyinpay-puppeteer:1.0.0 #replace it with your exactly <image_name:tags>
+          image: registry-vpc.cn-hangzhou.aliyuncs.com/xinghan-docker/douyinpay-puppeteer:latest #replace it with your exactly <image_name:tags>
           env:
             - name: SERVER_DOMAIN
               value: "http://dyqr.61week.com"
