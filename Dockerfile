@@ -2,6 +2,8 @@ FROM dounine/puppeteer:latest
 ENV NODE_ENV="pro" \
     SERVER_DOMAIN="http://localhost:3000" \
     SERVER_PORT="3000"
+#只能本地build
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 RUN echo 'Asia/Shanghai' > /etc/timezone
 WORKDIR /app
 ADD cache /app/cache
