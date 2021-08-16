@@ -13,7 +13,23 @@ const server_port = process.env.SERVER_PORT || 3000;
 
 (async () => {
     let cluster = await clusterPuppeteer();
-
+    let open = function () {
+        cluster.queue(async ({page}) => {
+            const cookieString = await fs.readFile("./cookie.json");
+            const cookies = JSON.parse(cookieString);
+            await page.setCookie(...cookies);
+            await page.setViewport({
+                width: 1920,
+                height: 1080
+            });
+            await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
+            await page.waitForTimeout(50 * 1000);
+        })
+    }
+    setInterval(function () {
+        open();
+    }, 60 * 1000);
+    open();
     fs.mkdir("./qrcode", (r) => {
         console.log(new Date(), "create qrcode dir fold ", r)
     })
