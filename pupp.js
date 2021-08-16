@@ -84,7 +84,7 @@ module.exports = {
         return new Promise(async (resolve, reject) => {
             const start = new Date();
             const browser = await puppeteer.launch({
-                headless: false,
+                headless: true,
                 devtools: false,
                 args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             });
