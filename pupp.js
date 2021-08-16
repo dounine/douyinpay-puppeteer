@@ -266,14 +266,14 @@ module.exports = {
                     "node": getIPAdress()
                 })
             } catch (e) {
-                console.error("充值异常请排查：" + e)
+                console.error(new Date(), "充值异常请排查：" + e, order)
                 // await page.close()
-                pageResolve(false);
                 resolve({
                     "message": "fail",
                     "setup": timeoutSetup,
                     "node": getIPAdress()
                 })
+                pageResolve(false);
             }
         })
     },
