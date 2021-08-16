@@ -44,12 +44,13 @@ module.exports = {
     },
     clusterPuppeteer: async function () {
         return await Cluster.launch({
+            puppeteer: puppeteer,
             concurrency: Cluster.CONCURRENCY_PAGE,
             maxConcurrency: 30,
             timeout: 60000,
             puppeteerOptions: {
                 headless: true,
-                // args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+                args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             }
         });
     },
