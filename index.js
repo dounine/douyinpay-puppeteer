@@ -13,7 +13,7 @@ const server_port = process.env.SERVER_PORT || 3000
 
 
 fs.mkdir("./qrcode", (r) => {
-    console.log("create qrcode dir fold ", r)
+    console.log(new Date(), "create qrcode dir fold ", r)
 })
 app.use(cors({
     origin: function (ctx) {
@@ -26,7 +26,7 @@ app.use(bodyParser());
 app.use(async (ctx, next) => {
     await next();
     const rt = ctx.response.get('X-Response-Time');
-    console.log(`${new Date()} ${ctx.method} ${ctx.url} - ${rt}`);
+    console.log(new Date(), `${ctx.method} ${ctx.url} - ${rt}`);
 });
 app.use(async (ctx, next) => {
     const start = Date.now();
@@ -68,5 +68,5 @@ router.post('/qrcode', async (ctx, next) => {
 });
 app.use(router.routes()).use(router.allowedMethods());
 app.listen(server_port, () => {
-    console.log(`start server for ${myIp()}:${server_port}`)
+    console.log(new Date(), `start server for ${myIp()}:${server_port}`)
 });

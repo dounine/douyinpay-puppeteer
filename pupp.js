@@ -60,18 +60,18 @@ module.exports = {
             let intervalCount = 0;
             const interval = setInterval(async () => {
                 if (intervalCount > 55) {
-                    console.log("超时未登录")
+                    console.log(new Date(), "超时未登录")
                     clearInterval(interval);
                     await browser.close();
                 } else if (page.url().includes("is_new_connect")) {
-                    console.log("登录成功")
+                    console.log(new Date(), "登录成功")
                     clearInterval(interval);
                     const cookies = await page.cookies();
                     await fs.writeFile("./cookie.json", JSON.stringify(cookies))
                     await axios.post(url, {
                         cookies
                     }).then(response => {
-                        console.log("登录成功回调结果：" + JSON.stringify(response.data))
+                        console.log(new Date(), "登录成功回调结果：" + JSON.stringify(response.data))
                     })
                     await browser.close()
                 }
@@ -84,7 +84,7 @@ module.exports = {
         return new Promise(async (resolve, reject) => {
             const start = new Date();
             const browser = await puppeteer.launch({
-                headless: true,
+                headless: false,
                 devtools: false,
                 args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             });
@@ -97,11 +97,11 @@ module.exports = {
                     try {
                         await fs.unlink(qrcodePath)
                     } catch (ee) {
-                        console.error(ee)
+                        console.error(new Date(), ee)
                     }
                 }
                 if (!success) {
-                    console.log(`超时 -> ${timeoutSetup} -> ${timeout} -> ${orderId}`)
+                    console.log(new Date(), `超时 -> ${timeoutSetup} -> ${timeout} -> ${orderId}`)
                     await browser.close()
                     resolve({
                         "message": "timeout",
@@ -111,26 +111,26 @@ module.exports = {
                 }
             }, timeout - (new Date().getTime() - start.getTime()))
             const page = await browser.newPage();
-            await page.setRequestInterception(true);
+            // await page.setRequestInterception(true);
             const rejectUrls = ["bg-douyin.5d11bb39.png", "https://lf1-cdn-tos.bytescm.com/obj/venus/favicon.ico"];
             const cacheUrls = ["index.0f6f463c.js", "page.4e076066.js", "sentry.3.6.35.cn.js", "secsdk.umd.js", "secsdk.umd.js", "vendor.dbbc2d7d.js", "acrawler.js"];
-            page.on("request", async interceptedRequest => {
-                let url = interceptedRequest.url();
-                if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg")) {
-                    await interceptedRequest.abort();
-                } else if (rejectUrls.find(el => url.includes(el))) {
-                    await interceptedRequest.abort();
-                } else if (cacheUrls.find(el => url.includes(el))) {
-                    let endUrl = cacheUrls.find(el => url.includes(el))
-                    await interceptedRequest.respond({
-                        contentType: "application/javascript",
-                        body: await fs.readFile("./cache/" + endUrl)
-                    });
-                } else {
-                    await interceptedRequest.continue();
-                }
-            });
-            console.log(`${orderId} open page time -> ` + (new Date().getTime() - start.getTime()) + "ms")
+            // page.on("request", async interceptedRequest => {
+            //     let url = interceptedRequest.url();
+            //     if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg")) {
+            //         await interceptedRequest.abort();
+            //     } else if (rejectUrls.find(el => url.includes(el))) {
+            //         await interceptedRequest.abort();
+            //     } else if (cacheUrls.find(el => url.includes(el))) {
+            //         let endUrl = cacheUrls.find(el => url.includes(el))
+            //         await interceptedRequest.respond({
+            //             contentType: "application/javascript",
+            //             body: await fs.readFile("./cache/" + endUrl)
+            //         });
+            //     } else {
+            //         await interceptedRequest.continue();
+            //     }
+            // });
+            console.log(new Date(), `${orderId} open page time -> ` + (new Date().getTime() - start.getTime()) + "ms")
             await page.setViewport({
                 width: 1920,
                 height: 1080
@@ -140,7 +140,7 @@ module.exports = {
                 const cookies = JSON.parse(cookieString);
                 await page.setCookie(...cookies);
                 await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
-                console.log("open douyin time -> " + (new Date().getTime() - start.getTime()) + "ms")
+                console.log(new Date(), `open douyin time -> ` + (new Date().getTime() - start.getTime()) + "ms")
                 {
                     timeoutSetup = "switchAccountButton";
                     //点击切换帐号
@@ -230,7 +230,7 @@ module.exports = {
                 let intervalCount = 0
                 let interval = setInterval(async () => {
                     if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
-                        console.log("not pay", orderId)
+                        console.log(new Date(), "not pay", orderId)
                         clearInterval(interval);
                         if (success) {
                             try {
@@ -246,14 +246,14 @@ module.exports = {
                                 "pay": false,
                                 "node": getIPAdress()
                             }).then(response => {
-                                console.log("充值失败回调结果：" + JSON.stringify(response.data))
+                                console.log(new Date(), "充值失败回调结果：" + JSON.stringify(response.data))
                             }).catch(e => {
-                                console.log("充值失败无法回调服务器")
+                                console.log(new Date(), "充值失败无法回调服务器")
                             })
                         }
                     } else if (page.url().includes("result?app_id")) {
                         clearInterval(interval);
-                        console.log("pay success", orderId)
+                        console.log(new Date(), "pay success", orderId)
                         if (success) {
                             try {
                                 await fs.unlink(qrcodePath)
@@ -268,9 +268,9 @@ module.exports = {
                                 "pay": true,
                                 "node": getIPAdress()
                             }).then(response => {
-                                console.log("充值成功回调结果：" + JSON.stringify(response.data))
+                                console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
                             }).catch(e => {
-                                console.log("充值成功无法回调服务器")
+                                console.log(new Date(), "充值成功无法回调服务器")
                             })
                         }
                     }
