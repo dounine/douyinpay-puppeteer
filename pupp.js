@@ -80,8 +80,9 @@ module.exports = {
             resolve("./qrcode/login.png");
         })
     },
-    qrcode: async function ({orderId, id, money, timeout = 8000, callback}) {
+    qrcode: async function (data) {
         return new Promise(async (resolve, reject) => {
+            const {orderId, id, money, timeout = 8000, callback} = data;
             const start = new Date();
             const browser = await puppeteer.launch({
                 headless: true,
@@ -101,7 +102,7 @@ module.exports = {
                     }
                 }
                 if (!success) {
-                    console.log(new Date(), `超时 -> ${timeoutSetup} -> ${timeout} -> ${orderId}`)
+                    console.log(new Date(), `充值超时、请排查 -> ${timeoutSetup} -> ${data}`)
                     await browser.close()
                     resolve({
                         "message": "timeout",
@@ -246,7 +247,7 @@ module.exports = {
                                 "pay": false,
                                 "node": getIPAdress()
                             }).then(response => {
-                                console.log(new Date(), "充值失败回调结果：" + JSON.stringify(response.data))
+                                console.log(new Date(), "超时未支付回调结果：" + JSON.stringify(response.data))
                             }).catch(e => {
                                 console.log(new Date(), "充值失败无法回调服务器")
                             })
@@ -284,7 +285,7 @@ module.exports = {
                     "node": getIPAdress()
                 })
             } catch (e) {
-                console.error("异常：" + e)
+                console.error("充值异常请排查：" + e)
                 await browser.close()
                 resolve({
                     "message": "fail",
