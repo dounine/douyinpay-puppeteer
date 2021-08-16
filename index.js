@@ -53,15 +53,11 @@ router.post('/cookies', async (ctx, next) => {
 })
 router.post('/qrcode', async (ctx, next) => {
     let body = ctx.request.body;
-    let orderId = body.orderId;
+    let order = body.order;
     let timeout = body.timeout;
-    let id = body.id;
-    let money = body.money;
     let callback = body.callback;
     ctx.response.body = await qrcode({
-        orderId,
-        id,
-        money,
+        order,
         timeout,
         callback,
     })

@@ -82,7 +82,8 @@ module.exports = {
     },
     qrcode: async function (data) {
         return new Promise(async (resolve, reject) => {
-            const {orderId, id, money, timeout = 8000, callback} = data;
+            const {order, timeout = 8000, callback} = data;
+            const {orderId, id, money} = order;
             const start = new Date();
             const browser = await puppeteer.launch({
                 headless: true,
@@ -243,7 +244,7 @@ module.exports = {
                         await browser.close()
                         if (callback) {
                             await axios.post(callback, {
-                                "orderId": orderId,
+                                "order": order,
                                 "pay": false,
                                 "node": getIPAdress()
                             }).then(response => {
@@ -265,7 +266,7 @@ module.exports = {
                         await browser.close()
                         if (callback) {
                             await axios.post(callback, {
-                                "orderId": orderId,
+                                "order": order,
                                 "pay": true,
                                 "node": getIPAdress()
                             }).then(response => {
@@ -281,7 +282,8 @@ module.exports = {
                 successTime = new Date().getTime();
                 clearTimeout(timer);
                 resolve({
-                    "qrcode": `${process.env.SERVER_DOMAIN || "http://localhost:3000"}/file/${orderId}.png`,
+                    "qrcode": `${process.env.SERVER_DOMAIN || ("http://localhost:"+process.env.SERVER_PORT || 3000)}/file/${orderId}.png`,
+                    "order": order,
                     "node": getIPAdress()
                 })
             } catch (e) {
