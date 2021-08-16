@@ -191,7 +191,6 @@ module.exports = {
                     await element.click();
                 }
                 {
-                    console.log(new Date());
                     timeoutSetup = "saveQrcode";
                     //保存二维码
                     const targetPage = page;
@@ -200,7 +199,6 @@ module.exports = {
                     await element.screenshot({
                         path: qrcodePath, omitBackground: true
                     });
-                    console.log(new Date());
                 }
                 timeoutSetup = "qrcodeToBase64";
                 const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
