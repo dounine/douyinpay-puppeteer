@@ -473,7 +473,7 @@ module.exports = {
                             try {
                                 await fs.unlink(qrcodePath)
                             } catch (ee) {
-                                console.error(ee)
+                                console.error(new Date(), ee)
                             }
                         }
                         await browser.close()
@@ -495,7 +495,7 @@ module.exports = {
                             try {
                                 await fs.unlink(qrcodePath)
                             } catch (ee) {
-                                console.error(ee)
+                                console.error(new Date(), ee)
                             }
                         }
                         await browser.close()
@@ -522,7 +522,7 @@ module.exports = {
                     "node": getIPAdress()
                 })
             } catch (e) {
-                console.error("充值异常请排查：" + e)
+                console.error(new Date(), "充值异常请排查：" + e)
                 await browser.close()
                 resolve({
                     "message": "fail",
