@@ -4,7 +4,7 @@ const path = require('path');
 const mineType = require('mime-types');
 const os = require('os');
 const axios = require("axios");
-
+const {Cluster} = require('puppeteer-cluster');
 axios.defaults.retry = 4;
 axios.defaults.retryDelay = 1000;
 axios.interceptors.response.use(undefined, function axiosRetryInterceptor(err) {
@@ -41,6 +41,240 @@ function getIPAdress() {
 module.exports = {
     myIp: function () {
         return getIPAdress();
+    },
+    clusterPuppeteer: async function () {
+        return await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            maxConcurrency: 30,
+            timeout: 60000,
+            puppeteerOptions: {
+                headless: true,
+                // args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+            }
+        });
+    },
+    query: async function ({page, data, pageResolve}) {
+        return new Promise(async (resolve, reject) => {
+            const {order, timeout = 8000, callback} = data;
+            const {orderId, id, money} = order;
+            const start = new Date();
+            // const browser = await puppeteer.launch({
+            //     headless: true,
+            //     devtools: false,
+            //     args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+            // });
+            let timeoutSetup = "";
+            const qrcodePath = `./qrcode/${orderId}.png`;
+            let success = false;
+            let successTime = new Date().getTime();
+            let timer = setTimeout(async () => {
+                if (success) {
+                    try {
+                        await fs.unlink(qrcodePath)
+                    } catch (ee) {
+                        console.error(new Date(), ee)
+                    }
+                }
+                if (!success) {
+                    console.log(new Date(), `充值超时、请排查 -> ${timeoutSetup} -> ${JSON.stringify(data)}`)
+                    pageResolve(false);
+                    // await page.close()
+                    resolve({
+                        "message": "timeout",
+                        "setup": timeoutSetup,
+                        "node": getIPAdress()
+                    });
+                }
+            }, timeout - (new Date().getTime() - start.getTime()))
+            // const page = await browser.newPage();
+            // await page.setRequestInterception(true);
+            const rejectUrls = ["bg-douyin.5d11bb39.png", "https://lf1-cdn-tos.bytescm.com/obj/venus/favicon.ico"];
+            const cacheUrls = ["index.0f6f463c.js", "page.4e076066.js", "sentry.3.6.35.cn.js", "secsdk.umd.js", "secsdk.umd.js", "vendor.dbbc2d7d.js", "acrawler.js"];
+            // page.on("request", async interceptedRequest => {
+            //     let url = interceptedRequest.url();
+            //     if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg")) {
+            //         await interceptedRequest.abort();
+            //     } else if (rejectUrls.find(el => url.includes(el))) {
+            //         await interceptedRequest.abort();
+            //     } else if (cacheUrls.find(el => url.includes(el))) {
+            //         let endUrl = cacheUrls.find(el => url.includes(el))
+            //         await interceptedRequest.respond({
+            //             contentType: "application/javascript",
+            //             body: await fs.readFile("./cache/" + endUrl)
+            //         });
+            //     } else {
+            //         await interceptedRequest.continue();
+            //     }
+            // });
+            console.log(new Date(), `${orderId} open page time -> ` + (new Date().getTime() - start.getTime()) + "ms")
+            try {
+                const cookieString = await fs.readFile("./cookie.json");
+                const cookies = JSON.parse(cookieString);
+                await page.setCookie(...cookies);
+                await page.setViewport({
+                    width: 1920,
+                    height: 1080
+                });
+                await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
+                console.log(new Date(), `open douyin time -> ` + (new Date().getTime() - start.getTime()) + "ms")
+                {
+                    timeoutSetup = "switchAccountButton";
+                    //点击切换帐号
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.user-info > div.btn");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "inputAccount";
+                    //输入帐号
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("aria/输入抖音号或绑定的手机号");
+                    await element.type(id);
+                }
+                {
+                    timeoutSetup = "inputAccount";
+                    //点击确认
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.select-wrap > div.input-wrap > div.confirm-btn");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "waitAccountId";
+                    //点击用户ID、等待ID出来
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.user-info > div.info > p");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "clickCustomMoneyInput";
+                    //点击自定义金额
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.combo-list > div.customer-recharge > span.des");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "inputMoney";
+                    //输入金额
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.combo-list > div.customer-recharge.active > div.money-container > div > input");
+                    await element.type(money.toString());
+                }
+                {
+                    timeoutSetup = "clickPayButton";
+                    //确认支付
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div.pay-button");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "clickConfirmButton";
+                    //确认为他人充值
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.check-content > div.footer-btn > div.right");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "clickWechatPay";
+                    //点击微信支付
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div.pay-channel-wx");
+                    await element.click();
+                }
+                {
+                    console.log(new Date());
+                    timeoutSetup = "saveQrcode";
+                    //保存二维码
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector('div.pay-method-scanpay-qrcode-image > svg');
+                    await element.screenshot({
+                        path: qrcodePath, omitBackground: true
+                    });
+                    console.log(new Date());
+                }
+                timeoutSetup = "qrcodeToBase64";
+                const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
+                const data = Buffer.from(imgBuffer).toString("base64")
+                const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
+                let intervalCount = 0
+                let interval = setInterval(async () => {
+                    if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
+                        console.log(new Date(), "not pay", orderId)
+                        clearInterval(interval);
+                        if (success) {
+                            try {
+                                await fs.unlink(qrcodePath)
+                            } catch (ee) {
+                                console.error(ee)
+                            }
+                        }
+                        // await page.close()
+                        pageResolve(false);
+                        if (callback) {
+                            await axios.post(callback, {
+                                "order": order,
+                                "pay": false,
+                                "node": getIPAdress()
+                            }).then(response => {
+                                console.log(new Date(), "超时未支付回调结果：" + JSON.stringify(response.data))
+                            }).catch(e => {
+                                console.log(new Date(), "充值失败无法回调服务器")
+                            })
+                        }
+                    } else if (page.url().includes("result?app_id")) {
+                        clearInterval(interval);
+                        console.log(new Date(), "pay success", orderId)
+                        if (success) {
+                            try {
+                                await fs.unlink(qrcodePath)
+                            } catch (ee) {
+                                console.error(ee)
+                            }
+                        }
+                        // await page.close()
+                        pageResolve(true);
+                        if (callback) {
+                            await axios.post(callback, {
+                                "order": order,
+                                "pay": true,
+                                "node": getIPAdress()
+                            }).then(response => {
+                                console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
+                            }).catch(e => {
+                                console.log(new Date(), "充值成功无法回调服务器")
+                            })
+                        }
+                    }
+                    intervalCount += 1;
+                }, 1000)
+                success = true;
+                successTime = new Date().getTime();
+                clearTimeout(timer);
+                resolve({
+                    "qrcode": `${process.env.SERVER_DOMAIN || ("http://localhost:" + (process.env.SERVER_PORT || 3000))}/file/${orderId}.png`,
+                    "order": order,
+                    "node": getIPAdress()
+                })
+            } catch (e) {
+                console.error("充值异常请排查：" + e)
+                // await page.close()
+                pageResolve(false);
+                resolve({
+                    "message": "fail",
+                    "setup": timeoutSetup,
+                    "node": getIPAdress()
+                })
+            }
+        })
     },
     login: async function (url) {
         return new Promise(async (resolve, reject) => {
@@ -282,7 +516,7 @@ module.exports = {
                 successTime = new Date().getTime();
                 clearTimeout(timer);
                 resolve({
-                    "qrcode": `${process.env.SERVER_DOMAIN || ("http://localhost:"+process.env.SERVER_PORT || 3000)}/file/${orderId}.png`,
+                    "qrcode": `${process.env.SERVER_DOMAIN || ("http://localhost:" + process.env.SERVER_PORT || 3000)}/file/${orderId}.png`,
                     "order": order,
                     "node": getIPAdress()
                 })
