@@ -26,6 +26,7 @@ const server_port = process.env.SERVER_PORT || 3000;
             await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
             console.log("缓存页面已打开")
             await page.waitForTimeout(50 * 1000);
+            console.log("缓存页面已关闭")
         })
     }
     setInterval(async function () {
