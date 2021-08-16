@@ -102,7 +102,7 @@ module.exports = {
                     }
                 }
                 if (!success) {
-                    console.log(new Date(), `充值超时、请排查 -> ${timeoutSetup} -> ${data}`)
+                    console.log(new Date(), `充值超时、请排查 -> ${timeoutSetup} -> ${JSON.stringify(data)}`)
                     await browser.close()
                     resolve({
                         "message": "timeout",
@@ -225,9 +225,9 @@ module.exports = {
                     });
                 }
                 timeoutSetup = "qrcodeToBase64";
-                // const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
-                // const data = Buffer.from(imgBuffer).toString("base64")
-                // const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
+                const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
+                const data = Buffer.from(imgBuffer).toString("base64")
+                const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
                 let intervalCount = 0
                 let interval = setInterval(async () => {
                     if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
