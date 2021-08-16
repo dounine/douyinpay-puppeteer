@@ -65,6 +65,8 @@ spec:
               value: "http://dyqr.61week.com"
             - name: SERVER_PORT
               value: "3000"
+            - name: TZ
+                value: "Asia/Shanghai"
           volumeMounts:
             - name: my-pvc-nas
               mountPath: "/app/qrcode"
