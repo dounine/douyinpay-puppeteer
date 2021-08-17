@@ -200,10 +200,10 @@ module.exports = {
                         path: qrcodePath, omitBackground: true
                     });
                 }
-                timeoutSetup = "qrcodeToBase64";
-                const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
-                const data = Buffer.from(imgBuffer).toString("base64")
-                const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
+                // timeoutSetup = "qrcodeToBase64";
+                // const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
+                // const data = Buffer.from(imgBuffer).toString("base64")
+                // const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
                 let intervalCount = 0
                 let interval = setInterval(async () => {
                     if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
@@ -458,10 +458,10 @@ module.exports = {
                         path: qrcodePath, omitBackground: true
                     });
                 }
-                timeoutSetup = "qrcodeToBase64";
-                const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
-                const data = Buffer.from(imgBuffer).toString("base64")
-                const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
+                // timeoutSetup = "qrcodeToBase64";
+                // const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
+                // const data = Buffer.from(imgBuffer).toString("base64")
+                // const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
                 let intervalCount = 0
                 let interval = setInterval(async () => {
                     if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
