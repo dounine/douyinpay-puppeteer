@@ -194,7 +194,7 @@ module.exports = {
                 let config = headless === false ? {
                     clip: {
                         x: 226,
-                        y: 507,
+                        y: 506,
                         width: 200,
                         height: 200
                     }
@@ -467,7 +467,7 @@ module.exports = {
                     let config = headless === false ? {
                         clip: {
                             x: 226,
-                            y: 507,
+                            y: 506,
                             width: 200,
                             height: 200
                         }
