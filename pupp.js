@@ -231,7 +231,7 @@ module.exports = {
                         }
                     } else if (page.url().includes("result?app_id")) {
                         clearInterval(interval);
-                        console.log(new Date(), "pay success", orderId)
+                        console.log(new Date(), "pay success", order)
                         if (success) {
                             try {
                                 await fs.unlink(qrcodePath)
@@ -240,7 +240,6 @@ module.exports = {
                             }
                         }
                         // await page.close()
-                        pageResolve(true);
                         if (callback) {
                             await axios.post(callback, {
                                 "order": order,
@@ -252,6 +251,7 @@ module.exports = {
                                 console.log(new Date(), "充值成功无法回调服务器")
                             })
                         }
+                        pageResolve(true);
                     }
                     intervalCount += 1;
                 }, 1000)
