@@ -7,6 +7,7 @@ const axios = require("axios");
 const {Cluster} = require('puppeteer-cluster');
 axios.defaults.retry = 4;
 axios.defaults.retryDelay = 1000;
+const headless = false;
 axios.interceptors.response.use(undefined, function axiosRetryInterceptor(err) {
     let config = err.config;
     if (!config || !config.retry) return Promise.reject(err);
@@ -49,7 +50,7 @@ module.exports = {
             maxConcurrency: 30,
             timeout: 60000,
             puppeteerOptions: {
-                headless: true,
+                headless,
                 args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             }
         });
@@ -113,8 +114,8 @@ module.exports = {
                 const cookies = JSON.parse(cookieString);
                 await page.setCookie(...cookies);
                 await page.setViewport({
-                    width: 1920,
-                    height: 1080
+                    width: 800,
+                    height: 1500
                 });
                 await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
                 console.log(new Date(), `open douyin time -> ` + (new Date().getTime() - start.getTime()) + "ms")
@@ -190,6 +191,14 @@ module.exports = {
                     const element = await frame.waitForSelector("div.pay-channel-wx");
                     await element.click();
                 }
+                let config = headless === false ? {
+                    clip: {
+                        x: 226,
+                        y: 507,
+                        width: 200,
+                        height: 200
+                    }
+                } : {};
                 {
                     timeoutSetup = "saveQrcode";
                     //保存二维码
@@ -197,7 +206,8 @@ module.exports = {
                     const frame = targetPage.mainFrame();
                     const element = await frame.waitForSelector('div.pay-method-scanpay-qrcode-image > svg');
                     await element.screenshot({
-                        path: qrcodePath, omitBackground: true
+                        path: qrcodePath,
+                        ...config
                     });
                 }
                 // timeoutSetup = "qrcodeToBase64";
@@ -319,7 +329,7 @@ module.exports = {
             const {orderId, id, money} = order;
             const start = new Date();
             const browser = await puppeteer.launch({
-                headless: true,
+                headless,
                 devtools: false,
                 args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             });
@@ -454,8 +464,17 @@ module.exports = {
                     const targetPage = page;
                     const frame = targetPage.mainFrame();
                     const element = await frame.waitForSelector('div.pay-method-scanpay-qrcode-image > svg');
+                    let config = headless === false ? {
+                        clip: {
+                            x: 226,
+                            y: 507,
+                            width: 200,
+                            height: 200
+                        }
+                    } : {};
                     await element.screenshot({
-                        path: qrcodePath, omitBackground: true
+                        path: qrcodePath,
+                        ...config
                     });
                 }
                 // timeoutSetup = "qrcodeToBase64";
