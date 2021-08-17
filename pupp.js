@@ -231,7 +231,7 @@ module.exports = {
                         }
                     } else if (page.url().includes("result?app_id")) {
                         clearInterval(interval);
-                        console.log(new Date(), "pay success", order)
+                        console.log(new Date(), "pay success", JSON.stringify(order))
                         if (success) {
                             try {
                                 await fs.unlink(qrcodePath)
@@ -488,7 +488,7 @@ module.exports = {
                         }
                     } else if (page.url().includes("result?app_id")) {
                         clearInterval(interval);
-                        console.log(new Date(), "pay success", orderId)
+                        console.log(new Date(), "pay success", JSON.stringify(order))
                         if (success) {
                             try {
                                 await fs.unlink(qrcodePath)
