@@ -98,6 +98,7 @@ module.exports = {
                 if (url.includes("tp.cashier.trade_query") && intervalQuery == null && success) {
                     let data = interceptedRequest.postData();
                     let intervalCount = 0;
+                    let callBackSuccess = false;
                     intervalQuery = setInterval(async () => {
                         if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
                             console.log(new Date(), "not pay", JSON.stringify(order))
@@ -127,9 +128,9 @@ module.exports = {
                                     data
                                 )
                                     .then(async res => {
-                                        if (res.data.data && res.data.data.trade_info.status === "SUCCESS") {
+                                        if (res.data.data && res.data.data.trade_info.status === "SUCCESS" && !callBackSuccess) {
+                                            callBackSuccess = true;
                                             console.log(new Date(), "pay success", JSON.stringify(order))
-                                            console.log(res.data)
                                             clearInterval(intervalQuery);
                                             intervalQuery = null;
                                             if (success) {
