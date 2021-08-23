@@ -5,26 +5,26 @@ const mineType = require('mime-types');
 const os = require('os');
 const axios = require("axios");
 const {Cluster} = require('puppeteer-cluster');
-axios.defaults.retry = 4;
-axios.defaults.retryDelay = 1000;
-const headless = false;
-axios.interceptors.response.use(undefined, function axiosRetryInterceptor(err) {
-    let config = err.config;
-    if (!config || !config.retry) return Promise.reject(err);
-    config.__retryCount = config.__retryCount || 0;
-    if (config.__retryCount >= config.retry) {
-        return Promise.reject(err);
-    }
-    config.__retryCount += 1;
-    let backoff = new Promise(function (resolve) {
-        setTimeout(function () {
-            resolve();
-        }, config.retryDelay || 1);
-    });
-    return backoff.then(function () {
-        return axios(config);
-    });
-});
+// axios.defaults.retry = 4;
+// axios.defaults.retryDelay = 1000;
+const headless = true;
+// axios.interceptors.response.use(undefined, function axiosRetryInterceptor(err) {
+//     let config = err.config;
+//     if (!config || !config.retry) return Promise.reject(err);
+//     config.__retryCount = config.__retryCount || 0;
+//     if (config.__retryCount >= config.retry) {
+//         return Promise.reject(err);
+//     }
+//     config.__retryCount += 1;
+//     let backoff = new Promise(function (resolve) {
+//         setTimeout(function () {
+//             resolve();
+//         }, config.retryDelay || 1);
+//     });
+//     return backoff.then(function () {
+//         return axios(config);
+//     });
+// });
 
 function getIPAdress() {
     let interfaces = os.networkInterfaces();
@@ -89,25 +89,111 @@ module.exports = {
                 }
             }, timeout - (new Date().getTime() - start.getTime()))
             // const page = await browser.newPage();
-            // await page.setRequestInterception(true);
+            await page.setRequestInterception(true);
             const rejectUrls = ["bg-douyin.5d11bb39.png", "https://lf1-cdn-tos.bytescm.com/obj/venus/favicon.ico"];
             const cacheUrls = ["index.0f6f463c.js", "page.4e076066.js", "sentry.3.6.35.cn.js", "secsdk.umd.js", "secsdk.umd.js", "vendor.dbbc2d7d.js", "acrawler.js"];
-            // page.on("request", async interceptedRequest => {
-            //     let url = interceptedRequest.url();
-            //     if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg")) {
-            //         await interceptedRequest.abort();
-            //     } else if (rejectUrls.find(el => url.includes(el))) {
-            //         await interceptedRequest.abort();
-            //     } else if (cacheUrls.find(el => url.includes(el))) {
-            //         let endUrl = cacheUrls.find(el => url.includes(el))
-            //         await interceptedRequest.respond({
-            //             contentType: "application/javascript",
-            //             body: await fs.readFile("./cache/" + endUrl)
-            //         });
-            //     } else {
-            //         await interceptedRequest.continue();
-            //     }
-            // });
+            let intervalQuery = null;
+            page.on("request", async interceptedRequest => {
+                let url = interceptedRequest.url();
+                if (url.includes("tp.cashier.trade_query") && intervalQuery == null && success) {
+                    let data = interceptedRequest.postData();
+                    let intervalCount = 0;
+                    intervalQuery = setInterval(async () => {
+                        if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
+                            console.log(new Date(), "not pay", JSON.stringify(order))
+                            clearInterval(intervalQuery);
+                            if (success) {
+                                try {
+                                    await fs.unlink(qrcodePath)
+                                } catch (ee) {
+                                    console.error(ee)
+                                }
+                            }
+                            if (callback) {
+                                await axios.post(callback, {
+                                    "order": order,
+                                    "pay": false,
+                                    "node": getIPAdress()
+                                }).then(response => {
+                                    console.log(new Date(), "超时未支付回调结果：" + JSON.stringify(response.data))
+                                }).catch(e => {
+                                    console.log(new Date(), "充值失败无法回调服务器")
+                                })
+                            }
+                        } else {
+                            if (intervalQuery) {
+                                await axios.post(
+                                    "https://tp-pay.snssdk.com/gateway-cashier/tp.cashier.trade_query",
+                                    data
+                                )
+                                    .then(async res => {
+                                        if (res.data.data && res.data.data.trade_info.status === "SUCCESS") {
+                                            console.log(new Date(), "pay success", JSON.stringify(order))
+                                            console.log(res.data)
+                                            clearInterval(intervalQuery);
+                                            intervalQuery = null;
+                                            if (success) {
+                                                try {
+                                                    await fs.unlink(qrcodePath)
+                                                } catch (ee) {
+                                                    console.error(ee)
+                                                }
+                                            }
+                                            if (callback) {
+                                                await axios.post(callback, {
+                                                    "order": order,
+                                                    "pay": true,
+                                                    "node": getIPAdress()
+                                                }).then(response => {
+                                                    console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
+                                                }).catch(e => {
+                                                    console.log(new Date(), "充值成功无法回调服务器")
+                                                })
+                                            }
+                                        }
+                                    });
+                            }
+                            // } else if (page.url().includes("result?app_id")) {
+                            //     clearInterval(interval);
+                            //     console.log(new Date(), "pay success", JSON.stringify(order))
+                            //     if (success) {
+                            //         try {
+                            //             await fs.unlink(qrcodePath)
+                            //         } catch (ee) {
+                            //             console.error(ee)
+                            //         }
+                            //     }
+                            //     // await page.close()
+                            //     if (callback) {
+                            //         await axios.post(callback, {
+                            //             "order": order,
+                            //             "pay": true,
+                            //             "node": getIPAdress()
+                            //         }).then(response => {
+                            //             console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
+                            //         }).catch(e => {
+                            //             console.log(new Date(), "充值成功无法回调服务器")
+                            //         })
+                            //     }
+                        }
+                        intervalCount += 1;
+                    }, 1000);
+                    pageResolve(false);
+                }
+                //     if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg")) {
+                //         await interceptedRequest.abort();
+                //     } else if (rejectUrls.find(el => url.includes(el))) {
+                //         await interceptedRequest.abort();
+                //     } else if (cacheUrls.find(el => url.includes(el))) {
+                //         let endUrl = cacheUrls.find(el => url.includes(el))
+                //         await interceptedRequest.respond({
+                //             contentType: "application/javascript",
+                //             body: await fs.readFile("./cache/" + endUrl)
+                //         });
+                //     } else {
+                await interceptedRequest.continue();
+                //     }
+            });
             console.log(new Date(), `${orderId} open page time -> ` + (new Date().getTime() - start.getTime()) + "ms")
             try {
                 const cookieString = await fs.readFile("./cookie.json");
@@ -214,57 +300,57 @@ module.exports = {
                 // const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
                 // const data = Buffer.from(imgBuffer).toString("base64")
                 // const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
-                let intervalCount = 0
-                let interval = setInterval(async () => {
-                    if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
-                        console.log(new Date(), "not pay", orderId)
-                        clearInterval(interval);
-                        if (success) {
-                            try {
-                                await fs.unlink(qrcodePath)
-                            } catch (ee) {
-                                console.error(ee)
-                            }
-                        }
-                        // await page.close()
-                        pageResolve(false);
-                        if (callback) {
-                            await axios.post(callback, {
-                                "order": order,
-                                "pay": false,
-                                "node": getIPAdress()
-                            }).then(response => {
-                                console.log(new Date(), "超时未支付回调结果：" + JSON.stringify(response.data))
-                            }).catch(e => {
-                                console.log(new Date(), "充值失败无法回调服务器")
-                            })
-                        }
-                    } else if (page.url().includes("result?app_id")) {
-                        clearInterval(interval);
-                        console.log(new Date(), "pay success", JSON.stringify(order))
-                        if (success) {
-                            try {
-                                await fs.unlink(qrcodePath)
-                            } catch (ee) {
-                                console.error(ee)
-                            }
-                        }
-                        // await page.close()
-                        if (callback) {
-                            await axios.post(callback, {
-                                "order": order,
-                                "pay": true,
-                                "node": getIPAdress()
-                            }).then(response => {
-                                console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
-                            }).catch(e => {
-                                console.log(new Date(), "充值成功无法回调服务器")
-                            })
-                        }
-                        pageResolve(true);
-                    }
-                    intervalCount += 1;
-                }, 1000)
+                // let intervalCount = 0
+                // let interval = setInterval(async () => {
+                //     if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
+                //         console.log(new Date(), "not pay", orderId)
+                //         clearInterval(interval);
+                //         if (success) {
+                //             try {
+                //                 await fs.unlink(qrcodePath)
+                //             } catch (ee) {
+                //                 console.error(ee)
+                //             }
+                //         }
+                //         // await page.close()
+                //         pageResolve(false);
+                //         if (callback) {
+                //             await axios.post(callback, {
+                //                 "order": order,
+                //                 "pay": false,
+                //                 "node": getIPAdress()
+                //             }).then(response => {
+                //                 console.log(new Date(), "超时未支付回调结果：" + JSON.stringify(response.data))
+                //             }).catch(e => {
+                //                 console.log(new Date(), "充值失败无法回调服务器")
+                //             })
+                //         }
+                //     } else if (page.url().includes("result?app_id")) {
+                //         clearInterval(interval);
+                //         console.log(new Date(), "pay success", JSON.stringify(order))
+                //         if (success) {
+                //             try {
+                //                 await fs.unlink(qrcodePath)
+                //             } catch (ee) {
+                //                 console.error(ee)
+                //             }
+                //         }
+                //         // await page.close()
+                //         if (callback) {
+                //             await axios.post(callback, {
+                //                 "order": order,
+                //                 "pay": true,
+                //                 "node": getIPAdress()
+                //             }).then(response => {
+                //                 console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
+                //             }).catch(e => {
+                //                 console.log(new Date(), "充值成功无法回调服务器")
+                //             })
+                //         }
+                //         pageResolve(true);
+                //     }
+                //     intervalCount += 1;
+                // }, 1000);
                 success = true;
                 successTime = new Date().getTime();
                 clearTimeout(timer);
