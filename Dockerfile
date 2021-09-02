@@ -2,13 +2,14 @@ FROM dounine/puppeteer:latest
 ENV NODE_ENV="pro" \
     SERVER_DOMAIN="http://localhost:3000" \
     SERVER_PORT="3000"
+USER root
 #只能本地build
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 RUN echo 'Asia/Shanghai' > /etc/timezone
 WORKDIR /app
 ADD cache /app/cache
 ADD package.json /app
-RUN npm install
+RUN npm install --force
 COPY *.json /app/
 COPY *.js /app/
 EXPOSE 3000

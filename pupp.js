@@ -7,7 +7,7 @@ const axios = require("axios");
 const {Cluster} = require('puppeteer-cluster');
 // axios.defaults.retry = 4;
 // axios.defaults.retryDelay = 1000;
-const headless = true;
+// const headless = false;
 // axios.interceptors.response.use(undefined, function axiosRetryInterceptor(err) {
 //     let config = err.config;
 //     if (!config || !config.retry) return Promise.reject(err);
@@ -25,6 +25,11 @@ const headless = true;
 //         return axios(config);
 //     });
 // });
+function now() {
+    let time = new Date();
+    time.setHours(time.getHours() + 8);
+    return time;
+}
 
 function getIPAdress() {
     let interfaces = os.networkInterfaces();
@@ -40,58 +45,52 @@ function getIPAdress() {
 }
 
 module.exports = {
+    nowTime: function () {
+        return now();
+    },
     myIp: function () {
         return getIPAdress();
     },
-    clusterPuppeteer: async function () {
+    clusterPuppeteer: async function ({headless}) {
         return await Cluster.launch({
             puppeteer: puppeteer,
-            concurrency: Cluster.CONCURRENCY_PAGE,
+            concurrency: Cluster.CONCURRENCY_CONTEXT,
             maxConcurrency: 30,
             timeout: 60000,
             puppeteerOptions: {
                 headless,
-                args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+                args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--shm-size=3gb']
             }
         });
     },
-    query: async function ({page, data, pageResolve}) {
+    douyin: async function ({headless, page, data, pageResolve}) {
         return new Promise(async (resolve, reject) => {
             const {order, timeout = 8000, callback} = data;
             const {orderId, id, money} = order;
-            const start = new Date();
-            // const browser = await puppeteer.launch({
-            //     headless: true,
-            //     devtools: false,
-            //     args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
-            // });
+            const start = now();
             let timeoutSetup = "";
             const qrcodePath = `./qrcode/${orderId}.png`;
             let success = false;
-            let successTime = new Date().getTime();
+            let successTime = now().getTime();
             let timer = setTimeout(async () => {
                 if (success) {
                     try {
                         await fs.unlink(qrcodePath)
                     } catch (ee) {
-                        console.error(new Date(), ee)
+                        console.error(now(), ee)
                     }
                 }
                 if (!success) {
-                    console.log(new Date(), `充值超时、请排查 -> ${timeoutSetup} -> ${JSON.stringify(data)}`)
+                    console.log(now(), `充值超时、请排查 -> ${timeoutSetup} -> ${JSON.stringify(data)}`)
                     pageResolve(false);
-                    // await page.close()
                     resolve({
                         "message": "timeout",
                         "setup": timeoutSetup,
                         "node": getIPAdress()
                     });
                 }
-            }, timeout - (new Date().getTime() - start.getTime()))
-            // const page = await browser.newPage();
+            }, timeout - (now().getTime() - start.getTime()))
             await page.setRequestInterception(true);
-            const rejectUrls = ["bg-douyin.5d11bb39.png", "https://lf1-cdn-tos.bytescm.com/obj/venus/favicon.ico"];
-            const cacheUrls = ["index.0f6f463c.js", "page.4e076066.js", "sentry.3.6.35.cn.js", "secsdk.umd.js", "secsdk.umd.js", "vendor.dbbc2d7d.js", "acrawler.js"];
             let intervalQuery = null;
             page.on("request", async interceptedRequest => {
                 let url = interceptedRequest.url();
@@ -101,7 +100,7 @@ module.exports = {
                     let callBackSuccess = false;
                     intervalQuery = setInterval(async () => {
                         if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
-                            console.log(new Date(), "not pay", JSON.stringify(order))
+                            console.log(now(), "not pay", JSON.stringify(order))
                             clearInterval(intervalQuery);
                             if (success) {
                                 try {
@@ -116,9 +115,9 @@ module.exports = {
                                     "pay": false,
                                     "node": getIPAdress()
                                 }).then(response => {
-                                    console.log(new Date(), "超时未支付回调结果：" + JSON.stringify(response.data))
+                                    console.log(now(), "超时未支付回调结果：" + JSON.stringify(response.data))
                                 }).catch(e => {
-                                    console.log(new Date(), "充值失败无法回调服务器")
+                                    console.log(now(), "充值失败无法回调服务器")
                                 })
                             }
                         } else {
@@ -130,7 +129,7 @@ module.exports = {
                                     .then(async res => {
                                         if (res.data.data && res.data.data.trade_info.status === "SUCCESS" && !callBackSuccess) {
                                             callBackSuccess = true;
-                                            console.log(new Date(), "pay success", JSON.stringify(order))
+                                            console.log(now(), "pay success", JSON.stringify(order))
                                             clearInterval(intervalQuery);
                                             intervalQuery = null;
                                             if (success) {
@@ -146,58 +145,24 @@ module.exports = {
                                                     "pay": true,
                                                     "node": getIPAdress()
                                                 }).then(response => {
-                                                    console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
+                                                    console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
                                                 }).catch(e => {
-                                                    console.log(new Date(), "充值成功无法回调服务器")
+                                                    console.log(now(), "充值成功无法回调服务器")
                                                 })
                                             }
                                         }
                                     });
                             }
-                            // } else if (page.url().includes("result?app_id")) {
-                            //     clearInterval(interval);
-                            //     console.log(new Date(), "pay success", JSON.stringify(order))
-                            //     if (success) {
-                            //         try {
-                            //             await fs.unlink(qrcodePath)
-                            //         } catch (ee) {
-                            //             console.error(ee)
-                            //         }
-                            //     }
-                            //     // await page.close()
-                            //     if (callback) {
-                            //         await axios.post(callback, {
-                            //             "order": order,
-                            //             "pay": true,
-                            //             "node": getIPAdress()
-                            //         }).then(response => {
-                            //             console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
-                            //         }).catch(e => {
-                            //             console.log(new Date(), "充值成功无法回调服务器")
-                            //         })
-                            //     }
                         }
                         intervalCount += 1;
                     }, 1000);
                     pageResolve(false);
                 }
-                //     if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg")) {
-                //         await interceptedRequest.abort();
-                //     } else if (rejectUrls.find(el => url.includes(el))) {
-                //         await interceptedRequest.abort();
-                //     } else if (cacheUrls.find(el => url.includes(el))) {
-                //         let endUrl = cacheUrls.find(el => url.includes(el))
-                //         await interceptedRequest.respond({
-                //             contentType: "application/javascript",
-                //             body: await fs.readFile("./cache/" + endUrl)
-                //         });
-                //     } else {
                 await interceptedRequest.continue();
-                //     }
             });
-            console.log(new Date(), `${orderId} open page time -> ` + (new Date().getTime() - start.getTime()) + "ms")
+            console.log(now(), `${orderId} open page time -> ` + (now().getTime() - start.getTime()) + "ms")
             try {
-                const cookieString = await fs.readFile("./cookie.json");
+                const cookieString = await fs.readFile("./cookie_douyin.json");
                 const cookies = JSON.parse(cookieString);
                 await page.setCookie(...cookies);
                 await page.setViewport({
@@ -205,7 +170,7 @@ module.exports = {
                     height: 1500
                 });
                 await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
-                console.log(new Date(), `open douyin time -> ` + (new Date().getTime() - start.getTime()) + "ms")
+                console.log(now(), `open douyin time -> ` + (now().getTime() - start.getTime()) + "ms")
                 {
                     timeoutSetup = "switchAccountButton";
                     //点击切换帐号
@@ -297,63 +262,8 @@ module.exports = {
                         ...config
                     });
                 }
-                // timeoutSetup = "qrcodeToBase64";
-                // const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
-                // const data = Buffer.from(imgBuffer).toString("base64")
-                // const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
-                // let intervalCount = 0
-                // let interval = setInterval(async () => {
-                //     if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
-                //         console.log(new Date(), "not pay", orderId)
-                //         clearInterval(interval);
-                //         if (success) {
-                //             try {
-                //                 await fs.unlink(qrcodePath)
-                //             } catch (ee) {
-                //                 console.error(ee)
-                //             }
-                //         }
-                //         // await page.close()
-                //         pageResolve(false);
-                //         if (callback) {
-                //             await axios.post(callback, {
-                //                 "order": order,
-                //                 "pay": false,
-                //                 "node": getIPAdress()
-                //             }).then(response => {
-                //                 console.log(new Date(), "超时未支付回调结果：" + JSON.stringify(response.data))
-                //             }).catch(e => {
-                //                 console.log(new Date(), "充值失败无法回调服务器")
-                //             })
-                //         }
-                //     } else if (page.url().includes("result?app_id")) {
-                //         clearInterval(interval);
-                //         console.log(new Date(), "pay success", JSON.stringify(order))
-                //         if (success) {
-                //             try {
-                //                 await fs.unlink(qrcodePath)
-                //             } catch (ee) {
-                //                 console.error(ee)
-                //             }
-                //         }
-                //         // await page.close()
-                //         if (callback) {
-                //             await axios.post(callback, {
-                //                 "order": order,
-                //                 "pay": true,
-                //                 "node": getIPAdress()
-                //             }).then(response => {
-                //                 console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
-                //             }).catch(e => {
-                //                 console.log(new Date(), "充值成功无法回调服务器")
-                //             })
-                //         }
-                //         pageResolve(true);
-                //     }
-                //     intervalCount += 1;
-                // }, 1000);
                 success = true;
-                successTime = new Date().getTime();
+                successTime = now().getTime();
                 clearTimeout(timer);
                 resolve({
                     "qrcode": `${process.env.SERVER_DOMAIN || ("http://localhost:" + (process.env.SERVER_PORT || 3000))}/file/${orderId}.png`,
@@ -361,7 +271,7 @@ module.exports = {
                     "node": getIPAdress()
                 })
             } catch (e) {
-                console.error(new Date(), "充值异常请排查：" + e, order)
+                console.error(now(), "充值异常请排查：" + e, order)
                 // await page.close()
                 resolve({
                     "message": "fail",
@@ -372,12 +282,231 @@ module.exports = {
             }
         })
     },
-    login: async function (url) {
+    huoshan: async function ({headless, page, data, pageResolve}) {
+        return new Promise(async (resolve, reject) => {
+            const {order, timeout = 8000, callback} = data;
+            const {orderId, id, money} = order;
+            const start = now();
+            let timeoutSetup = "";
+            const qrcodePath = `./qrcode/${orderId}.png`;
+            let success = false;
+            let successTime = now().getTime();
+            let timer = setTimeout(async () => {
+                if (success) {
+                    try {
+                        await fs.unlink(qrcodePath)
+                    } catch (ee) {
+                        console.error(now(), ee)
+                    }
+                }
+                if (!success) {
+                    console.log(now(), `充值超时、请排查 -> ${timeoutSetup} -> ${JSON.stringify(data)}`)
+                    pageResolve(false);
+                    resolve({
+                        "message": "timeout",
+                        "setup": timeoutSetup,
+                        "node": getIPAdress()
+                    });
+                }
+            }, timeout - (now().getTime() - start.getTime()))
+            await page.setRequestInterception(true);
+            let intervalQuery = null;
+            page.on("request", async interceptedRequest => {
+                let url = interceptedRequest.url();
+                if (url.includes("tp.cashier.trade_query") && intervalQuery == null && success) {
+                    let data = interceptedRequest.postData();
+                    let intervalCount = 0;
+                    let callBackSuccess = false;
+                    intervalQuery = setInterval(async () => {
+                        if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
+                            console.log(now(), "not pay", JSON.stringify(order))
+                            clearInterval(intervalQuery);
+                            if (success) {
+                                try {
+                                    await fs.unlink(qrcodePath)
+                                } catch (ee) {
+                                    console.error(ee)
+                                }
+                            }
+                            if (callback) {
+                                await axios.post(callback, {
+                                    "order": order,
+                                    "pay": false,
+                                    "node": getIPAdress()
+                                }).then(response => {
+                                    console.log(now(), "超时未支付回调结果：" + JSON.stringify(response.data))
+                                }).catch(e => {
+                                    console.log(now(), "充值失败无法回调服务器")
+                                })
+                            }
+                        } else {
+                            if (intervalQuery) {
+                                await axios.post(
+                                    "https://tp-pay.snssdk.com/gateway-cashier/tp.cashier.trade_query",
+                                    data
+                                )
+                                    .then(async res => {
+                                        if (res.data.data && res.data.data.trade_info.status === "SUCCESS" && !callBackSuccess) {
+                                            callBackSuccess = true;
+                                            console.log(now(), "pay success", JSON.stringify(order))
+                                            clearInterval(intervalQuery);
+                                            intervalQuery = null;
+                                            if (success) {
+                                                try {
+                                                    await fs.unlink(qrcodePath)
+                                                } catch (ee) {
+                                                    console.error(ee)
+                                                }
+                                            }
+                                            if (callback) {
+                                                await axios.post(callback, {
+                                                    "order": order,
+                                                    "pay": true,
+                                                    "node": getIPAdress()
+                                                }).then(response => {
+                                                    console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
+                                                }).catch(e => {
+                                                    console.log(now(), "充值成功无法回调服务器")
+                                                })
+                                            }
+                                        }
+                                    });
+                            }
+                        }
+                        intervalCount += 1;
+                    }, 1000);
+                    pageResolve(false);
+                }
+                await interceptedRequest.continue();
+            });
+            console.log(now(), `${orderId} open page time -> ` + (now().getTime() - start.getTime()) + "ms")
+            try {
+                const cookieString = await fs.readFile("./cookie_huoshan.json");
+                const cookies = JSON.parse(cookieString);
+                await page.setCookie(...cookies);
+                await page.setViewport({
+                    width: 800,
+                    height: 1500
+                });
+                await page.goto("https://www.huoshan.com/falcon/webcast_openpc/pages/huoshan_recharge/index.html?is_new_connect=0&is_new_user=0");
+                console.log(now(), `open huoshan time -> ` + (now().getTime() - start.getTime()) + "ms")
+                {
+                    timeoutSetup = "switchAccountButton";
+                    //点击切换帐号
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.huoshan > div > div.user-info > div.btn");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "inputAccount";
+                    //输入帐号
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("aria/输入火山号或绑定的手机号");
+                    await element.type(id);
+                }
+                {
+                    timeoutSetup = "inputAccount";
+                    //点击确认
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.huoshan > div > div.select-wrap > div.input-wrap > div.confirm-btn");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "waitAccountId";
+                    //点击用户ID、等待ID出来
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.huoshan > div > div.user-info > div.info > p");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "clickCustomMoneyInput";
+                    //点击自定义金额
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.huoshan > div > div.combo-list > div.customer-recharge > span.des");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "inputMoney";
+                    //输入金额
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.huoshan > div > div.combo-list > div.customer-recharge.active > div.money-container > div > input");
+                    await element.type(money.toString());
+                }
+                {
+                    timeoutSetup = "clickPayButton";
+                    //确认支付
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div.pay-button");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "clickConfirmButton";
+                    //确认为他人充值
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.check-content > div.footer-btn > div.right");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "clickWechatPay";
+                    //点击微信支付
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div.pay-channel-wx");
+                    await element.click();
+                }
+                let config = headless === false ? {
+                    clip: {
+                        x: 226,
+                        y: 503,
+                        width: 200,
+                        height: 200
+                    }
+                } : {};
+                {
+                    timeoutSetup = "saveQrcode";
+                    //保存二维码
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector('div.pay-method-scanpay-qrcode-image > svg');
+                    await element.screenshot({
+                        path: qrcodePath,
+                        ...config
+                    });
+                }
+                success = true;
+                successTime = now().getTime();
+                clearTimeout(timer);
+                resolve({
+                    "qrcode": `${process.env.SERVER_DOMAIN || ("http://localhost:" + (process.env.SERVER_PORT || 3000))}/file/${orderId}.png`,
+                    "order": order,
+                    "node": getIPAdress()
+                })
+            } catch (e) {
+                console.error(now(), "充值异常请排查：" + e, order)
+                // await page.close()
+                resolve({
+                    "message": "fail",
+                    "setup": timeoutSetup,
+                    "node": getIPAdress()
+                })
+                pageResolve(false);
+            }
+        })
+    },
+    login_douyin: async function (url) {
         return new Promise(async (resolve, reject) => {
             const browser = await puppeteer.launch({
                 headless: true,
                 devtools: false,
-                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--shm-size=3gb']
             });
             const page = await browser.newPage();
             await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
@@ -390,19 +519,61 @@ module.exports = {
             let intervalCount = 0;
             const interval = setInterval(async () => {
                 if (intervalCount > 55) {
-                    console.log(new Date(), "超时未登录")
+                    console.log(now(), "超时未登录")
                     clearInterval(interval);
                     await browser.close();
                 } else if (page.url().includes("is_new_connect")) {
-                    console.log(new Date(), "登录成功")
+                    console.log(now(), "登录成功")
                     clearInterval(interval);
                     const cookies = await page.cookies();
-                    await fs.writeFile("./cookie.json", JSON.stringify(cookies))
-                    await axios.post(url, {
-                        cookies
-                    }).then(response => {
-                        console.log(new Date(), "登录成功回调结果：" + JSON.stringify(response.data))
-                    })
+                    await fs.writeFile("./cookie_douyin.json", JSON.stringify(cookies))
+                    if (url) {
+                        await axios.post(url, {
+                            cookies
+                        }).then(response => {
+                            console.log(now(), "登录成功回调结果：" + JSON.stringify(response.data))
+                        })
+                    }
+                    await browser.close()
+                }
+                intervalCount += 1
+            }, 1000)
+            resolve("./qrcode/login.png");
+        })
+    },
+    login_huoshan: async function (url) {
+        return new Promise(async (resolve, reject) => {
+            const browser = await puppeteer.launch({
+                headless: true,
+                devtools: false,
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--shm-size=3gb']
+            });
+            const page = await browser.newPage();
+            await page.goto("https://www.huoshan.com/falcon/webcast_openpc/pages/huoshan_recharge/index.html");
+            await page.waitForTimeout(1000)
+            const img = await page.waitForSelector(".qrcode-img")
+            const loginPath = `./qrcode/login.png`;
+            await img.screenshot({
+                path: loginPath, omitBackground: true
+            });
+            let intervalCount = 0;
+            const interval = setInterval(async () => {
+                if (intervalCount > 55) {
+                    console.log(now(), "超时未登录")
+                    clearInterval(interval);
+                    await browser.close();
+                } else if (page.url().includes("is_new_connect")) {
+                    console.log(now(), "登录成功")
+                    clearInterval(interval);
+                    const cookies = await page.cookies();
+                    await fs.writeFile("./cookie_douyin.json", JSON.stringify(cookies))
+                    if (url) {
+                        await axios.post(url, {
+                            cookies
+                        }).then(response => {
+                            console.log(now(), "登录成功回调结果：" + JSON.stringify(response.data))
+                        })
+                    }
                     await browser.close()
                 }
                 intervalCount += 1
@@ -414,7 +585,7 @@ module.exports = {
         return new Promise(async (resolve, reject) => {
             const {order, timeout = 8000, callback} = data;
             const {orderId, id, money} = order;
-            const start = new Date();
+            const start = now();
             const browser = await puppeteer.launch({
                 headless,
                 devtools: false,
@@ -423,17 +594,17 @@ module.exports = {
             let timeoutSetup = "";
             const qrcodePath = `./qrcode/${orderId}.png`;
             let success = false;
-            let successTime = new Date().getTime();
+            let successTime = now().getTime();
             let timer = setTimeout(async () => {
                 if (success) {
                     try {
                         await fs.unlink(qrcodePath)
                     } catch (ee) {
-                        console.error(new Date(), ee)
+                        console.error(now(), ee)
                     }
                 }
                 if (!success) {
-                    console.log(new Date(), `充值超时、请排查 -> ${timeoutSetup} -> ${JSON.stringify(data)}`)
+                    console.log(now(), `充值超时、请排查 -> ${timeoutSetup} -> ${JSON.stringify(data)}`)
                     await browser.close()
                     resolve({
                         "message": "timeout",
@@ -441,38 +612,19 @@ module.exports = {
                         "node": getIPAdress()
                     });
                 }
-            }, timeout - (new Date().getTime() - start.getTime()))
+            }, timeout - (now().getTime() - start.getTime()))
             const page = await browser.newPage();
-            // await page.setRequestInterception(true);
-            const rejectUrls = ["bg-douyin.5d11bb39.png", "https://lf1-cdn-tos.bytescm.com/obj/venus/favicon.ico"];
-            const cacheUrls = ["index.0f6f463c.js", "page.4e076066.js", "sentry.3.6.35.cn.js", "secsdk.umd.js", "secsdk.umd.js", "vendor.dbbc2d7d.js", "acrawler.js"];
-            // page.on("request", async interceptedRequest => {
-            //     let url = interceptedRequest.url();
-            //     if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg")) {
-            //         await interceptedRequest.abort();
-            //     } else if (rejectUrls.find(el => url.includes(el))) {
-            //         await interceptedRequest.abort();
-            //     } else if (cacheUrls.find(el => url.includes(el))) {
-            //         let endUrl = cacheUrls.find(el => url.includes(el))
-            //         await interceptedRequest.respond({
-            //             contentType: "application/javascript",
-            //             body: await fs.readFile("./cache/" + endUrl)
-            //         });
-            //     } else {
-            //         await interceptedRequest.continue();
-            //     }
-            // });
-            console.log(new Date(), `${orderId} open page time -> ` + (new Date().getTime() - start.getTime()) + "ms")
+            console.log(now(), `${orderId} open page time -> ` + (now().getTime() - start.getTime()) + "ms")
             await page.setViewport({
                 width: 1920,
                 height: 1080
             });
             try {
-                const cookieString = await fs.readFile("./cookie.json");
+                const cookieString = await fs.readFile("./cookie_douyin.json");
                 const cookies = JSON.parse(cookieString);
                 await page.setCookie(...cookies);
                 await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
-                console.log(new Date(), `open douyin time -> ` + (new Date().getTime() - start.getTime()) + "ms")
+                console.log(now(), `open douyin time -> ` + (now().getTime() - start.getTime()) + "ms")
                 {
                     timeoutSetup = "switchAccountButton";
                     //点击切换帐号
@@ -564,20 +716,16 @@ module.exports = {
                         ...config
                     });
                 }
-                // timeoutSetup = "qrcodeToBase64";
-                // const imgBuffer = await fs.readFile(path.resolve(qrcodePath));
-                // const data = Buffer.from(imgBuffer).toString("base64")
-                // const base64 = 'data:' + mineType.lookup(path.resolve(qrcodePath)) + ';base64,' + data;
                 let intervalCount = 0
                 let interval = setInterval(async () => {
                     if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
-                        console.log(new Date(), "not pay", orderId)
+                        console.log(now(), "not pay", orderId)
                         clearInterval(interval);
                         if (success) {
                             try {
                                 await fs.unlink(qrcodePath)
                             } catch (ee) {
-                                console.error(new Date(), ee)
+                                console.error(now(), ee)
                             }
                         }
                         await browser.close()
@@ -587,19 +735,19 @@ module.exports = {
                                 "pay": false,
                                 "node": getIPAdress()
                             }).then(response => {
-                                console.log(new Date(), "超时未支付回调结果：" + JSON.stringify(response.data))
+                                console.log(now(), "超时未支付回调结果：" + JSON.stringify(response.data))
                             }).catch(e => {
-                                console.log(new Date(), "充值失败无法回调服务器")
+                                console.log(now(), "充值失败无法回调服务器")
                             })
                         }
                     } else if (page.url().includes("result?app_id")) {
                         clearInterval(interval);
-                        console.log(new Date(), "pay success", JSON.stringify(order))
+                        console.log(now(), "pay success", JSON.stringify(order))
                         if (success) {
                             try {
                                 await fs.unlink(qrcodePath)
                             } catch (ee) {
-                                console.error(new Date(), ee)
+                                console.error(now(), ee)
                             }
                         }
                         await browser.close()
@@ -609,16 +757,16 @@ module.exports = {
                                 "pay": true,
                                 "node": getIPAdress()
                             }).then(response => {
-                                console.log(new Date(), "充值成功回调结果：" + JSON.stringify(response.data))
+                                console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
                             }).catch(e => {
-                                console.log(new Date(), "充值成功无法回调服务器")
+                                console.log(now(), "充值成功无法回调服务器")
                             })
                         }
                     }
                     intervalCount += 1;
                 }, 1000)
                 success = true;
-                successTime = new Date().getTime();
+                successTime = now().getTime();
                 clearTimeout(timer);
                 resolve({
                     "qrcode": `${process.env.SERVER_DOMAIN || ("http://localhost:" + process.env.SERVER_PORT || 3000)}/file/${orderId}.png`,
@@ -626,7 +774,7 @@ module.exports = {
                     "node": getIPAdress()
                 })
             } catch (e) {
-                console.error(new Date(), "充值异常请排查：" + e)
+                console.error(now(), "充值异常请排查：" + e)
                 await browser.close()
                 resolve({
                     "message": "fail",
@@ -635,10 +783,5 @@ module.exports = {
                 })
             }
         })
-        // setTimeout(async function () {
-        //     const cookies = await page.cookies();
-        //     await fs.writeFile("./cookie.json", JSON.stringify(cookies))
-        //     await browser.close()
-        // }, 1000 * 60)
     }
 }

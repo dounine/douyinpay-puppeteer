@@ -2,7 +2,7 @@ const Koa = require('koa');
 const Router = require('koa-router');
 const fs = require("fs");
 const path = require("path");
-const {qrcode, login, myIp, clusterPuppeteer, query} = require("./pupp");
+const {nowTime, login_douyin, login_huoshan, myIp, clusterPuppeteer, douyin, huoshan} = require("./pupp");
 const bodyParser = require('koa-bodyparser');
 const static = require('koa-static-router');
 const cors = require('koa2-cors');
@@ -10,13 +10,15 @@ const app = new Koa();
 const router = new Router();
 const fsPromise = fs.promises;
 const server_port = process.env.SERVER_PORT || 3000;
-
+const headless = process.env.HEADLESS || true;
+const callback = process.env.CALLBACK;
+const mime = require('mime-types');
 
 (async () => {
-    let cluster = await clusterPuppeteer();
-    let open = async function open({cluster}) {
+    let cluster = await clusterPuppeteer({headless});
+    let open_douyin = async function open({cluster}) {
         cluster.queue(async ({page}) => {
-            let cookieString = await fsPromise.readFile("./cookie.json");
+            let cookieString = await fsPromise.readFile("./cookie_douyin.json");
             let cookies = JSON.parse(cookieString);
             await page.setCookie(...cookies);
             await page.setViewport({
@@ -24,17 +26,17 @@ const server_port = process.env.SERVER_PORT || 3000;
                 height: 1080
             });
             await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
-            console.log(new Date(), "缓存页面已打开")
+            console.log(nowTime(), "缓存页面已打开")
             await page.waitForTimeout(50 * 1000);
-            console.log(new Date(), "缓存页面已关闭")
+            console.log(nowTime(), "缓存页面已关闭")
         })
     }
-    setInterval(async function () {
-        await open({cluster});
-    }, 60 * 1000);
-    await open({cluster});
+    // setInterval(async function () {
+    //     await open({cluster});
+    // }, 60 * 1000);
+    // await open({cluster});
     fs.mkdir("./qrcode", (r) => {
-        console.log(new Date(), "create qrcode dir fold ", r)
+        console.log(nowTime(), "create qrcode dir fold ", r)
     })
     app.use(cors({
         origin: function (ctx) {
@@ -47,7 +49,7 @@ const server_port = process.env.SERVER_PORT || 3000;
     app.use(async (ctx, next) => {
         await next();
         const rt = ctx.response.get('X-Response-Time');
-        console.log(new Date(), `${ctx.method} ${ctx.url} - ${rt}`);
+        console.log(nowTime(), `${ctx.method} ${ctx.url} - ${rt}`);
     });
     app.use(async (ctx, next) => {
         const start = Date.now();
@@ -60,30 +62,35 @@ const server_port = process.env.SERVER_PORT || 3000;
             "node": myIp()
         }
     })
-    router.get('/login.png', async (ctx, next) => {
-        const result = await login(ctx.request.header.url);
+    router.get('/login/douyin.png', async (ctx, next) => {
+        const result = await login_douyin(ctx.request.header.url);
+        let mimeType = mime.lookup(path.join(__dirname, result));
+        ctx.set('content-type', mimeType);
         ctx.response.body = fs.createReadStream(path.join(__dirname, result));
     })
-    router.post('/cookies', async (ctx, next) => {
+    router.get('/login/huoshan.png', async (ctx, next) => {
+        const result = await login_huoshan(ctx.request.header.url);
+        let mimeType = mime.lookup(path.join(__dirname, result));
+        ctx.set('content-type', mimeType);
+        ctx.response.body = fs.createReadStream(path.join(__dirname, result));
+    })
+    router.post('/cookies/douyin', async (ctx, next) => {
         const body = ctx.request.body;
-        await fsPromise.writeFile("./cookie.json", JSON.stringify(body.cookies))
+        await fsPromise.writeFile("./cookie_douyin.json", JSON.stringify(body.cookies))
         ctx.response.body = {
             "code": "ok",
             "node": myIp()
         };
     })
-    router.post('/qrcode2', async (ctx, next) => {
-        let body = ctx.request.body;
-        let order = body.order;
-        let timeout = body.timeout;
-        let callback = body.callback;
-        ctx.response.body = await qrcode({
-            order,
-            timeout,
-            callback,
-        })
-    });
-    router.post('/qrcode', async (ctx, next) => {
+    router.post('/cookies/huoshan', async (ctx, next) => {
+        const body = ctx.request.body;
+        await fsPromise.writeFile("./cookie_huoshan.json", JSON.stringify(body.cookies))
+        ctx.response.body = {
+            "code": "ok",
+            "node": myIp()
+        };
+    })
+    router.post('/qrcode/douyin', async (ctx, next) => {
         let body = ctx.request.body;
         let order = body.order;
         let timeout = body.timeout;
@@ -91,7 +98,8 @@ const server_port = process.env.SERVER_PORT || 3000;
         ctx.response.body = await new Promise((httpResolve, reject) => {
             cluster.queue(async ({page}) => {
                 let pageResult = new Promise(async (pageResolve, pageReject) => {
-                    let result = await query({
+                    let result = await douyin({
+                        headless,
                         page, data: {
                             order,
                             timeout,
@@ -105,8 +113,31 @@ const server_port = process.env.SERVER_PORT || 3000;
             })
         })
     });
+    router.post('/qrcode/huoshan', async (ctx, next) => {
+        let body = ctx.request.body;
+        let order = body.order;
+        let timeout = body.timeout;
+        let thisCallback = body.callback;
+        ctx.response.body = await new Promise((httpResolve, reject) => {
+            cluster.queue(async ({page}) => {
+                let pageResult = new Promise(async (pageResolve, pageReject) => {
+                    let result = await huoshan({
+                        headless,
+                        page, data: {
+                            order,
+                            timeout,
+                            callback: callback || thisCallback,
+                        },
+                        pageResolve
+                    });
+                    httpResolve(result)
+                })
+                await pageResult;
+            })
+        })
+    });
     app.use(router.routes()).use(router.allowedMethods());
     app.listen(server_port, () => {
-        console.log(new Date(), `start server for ${myIp()}:${server_port}`)
+        console.log(nowTime(), `start server for ${myIp()}:${server_port}`)
     });
 })();
