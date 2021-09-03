@@ -54,7 +54,7 @@ module.exports = {
     clusterPuppeteer: async function ({headless}) {
         return await Cluster.launch({
             puppeteer: puppeteer,
-            concurrency: Cluster.CONCURRENCY_CONTEXT,
+            concurrency: Cluster.CONCURRENCY_PAGE,
             maxConcurrency: 30,
             timeout: 60000,
             puppeteerOptions: {
