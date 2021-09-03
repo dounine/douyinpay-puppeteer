@@ -59,7 +59,7 @@ module.exports = {
             timeout: 60000,
             puppeteerOptions: {
                 headless,
-                args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--shm-size=3gb']
+                args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             }
         });
     },
