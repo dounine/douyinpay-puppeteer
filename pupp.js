@@ -147,7 +147,7 @@ module.exports = {
                                                 }).then(response => {
                                                     console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
                                                 }).catch(e => {
-                                                    console.log(now(), "充值成功无法回调服务器")
+                                                    console.log(now(), e, "充值成功无法回调服务器")
                                                 })
                                             }
                                         }
@@ -366,7 +366,7 @@ module.exports = {
                                                 }).then(response => {
                                                     console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
                                                 }).catch(e => {
-                                                    console.log(now(), "充值成功无法回调服务器")
+                                                    console.log(now(), e, "充值成功无法回调服务器")
                                                 })
                                             }
                                         }
@@ -759,7 +759,7 @@ module.exports = {
                             }).then(response => {
                                 console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
                             }).catch(e => {
-                                console.log(now(), "充值成功无法回调服务器")
+                                console.log(now(), e, "充值成功无法回调服务器")
                             })
                         }
                     }
