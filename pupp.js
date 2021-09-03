@@ -110,15 +110,25 @@ module.exports = {
                                 }
                             }
                             if (callback) {
-                                await axios.post(callback, {
-                                    "order": order,
-                                    "pay": false,
-                                    "node": getIPAdress()
-                                }).then(response => {
-                                    console.log(now(), "超时未支付回调结果：" + JSON.stringify(response.data))
-                                }).catch(e => {
-                                    console.log(now(), "充值失败无法回调服务器")
-                                })
+                                let postCallbackCount = 1;
+                                let postCallback = async function () {
+                                    await axios.post(callback, {
+                                        "order": order,
+                                        "pay": false,
+                                        "node": getIPAdress()
+                                    }).then(response => {
+                                        console.log(now(), "超时未支付回调结果：" + JSON.stringify(response.data))
+                                    }).catch(e => {
+                                        if (postCallbackCount <= 2) {
+                                            setTimeout(async function () {
+                                                await postCallback();
+                                            }, 1000 * postCallbackCount);
+                                        }
+                                        console.log(now(), e, `充值失败无法回调服务器、重试第 ${postCallbackCount} 次`)
+                                        postCallbackCount += 1;
+                                    })
+                                }
+                                await postCallback();
                             }
                         } else {
                             if (intervalQuery) {
@@ -140,15 +150,25 @@ module.exports = {
                                                 }
                                             }
                                             if (callback) {
-                                                await axios.post(callback, {
-                                                    "order": order,
-                                                    "pay": true,
-                                                    "node": getIPAdress()
-                                                }).then(response => {
-                                                    console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
-                                                }).catch(e => {
-                                                    console.log(now(), e, "充值成功无法回调服务器")
-                                                })
+                                                let postCallbackCount = 1;
+                                                let postCallback = async function () {
+                                                    await axios.post(callback, {
+                                                        "order": order,
+                                                        "pay": true,
+                                                        "node": getIPAdress()
+                                                    }).then(response => {
+                                                        console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
+                                                    }).catch(e => {
+                                                        if (postCallbackCount <= 2) {
+                                                            setTimeout(async function () {
+                                                                await postCallback();
+                                                            }, 1000 * postCallbackCount);
+                                                        }
+                                                        console.log(now(), e, `充值成功无法回调服务器、重试第 ${postCallbackCount} 次`)
+                                                        postCallbackCount += 1;
+                                                    })
+                                                }
+                                                await postCallback();
                                             }
                                         }
                                     });
@@ -329,15 +349,25 @@ module.exports = {
                                 }
                             }
                             if (callback) {
-                                await axios.post(callback, {
-                                    "order": order,
-                                    "pay": false,
-                                    "node": getIPAdress()
-                                }).then(response => {
-                                    console.log(now(), "超时未支付回调结果：" + JSON.stringify(response.data))
-                                }).catch(e => {
-                                    console.log(now(), "充值失败无法回调服务器")
-                                })
+                                let postCallbackCount = 1;
+                                let postCallback = async function () {
+                                    await axios.post(callback, {
+                                        "order": order,
+                                        "pay": false,
+                                        "node": getIPAdress()
+                                    }).then(response => {
+                                        console.log(now(), "超时未支付回调结果：" + JSON.stringify(response.data))
+                                    }).catch(e => {
+                                        if (postCallbackCount <= 2) {
+                                            setTimeout(async function () {
+                                                await postCallback();
+                                            }, 1000 * postCallbackCount);
+                                        }
+                                        console.log(now(), e, `充值失败无法回调服务器、重试第 ${postCallbackCount} 次`)
+                                        postCallbackCount += 1;
+                                    })
+                                }
+                                await postCallback();
                             }
                         } else {
                             if (intervalQuery) {
@@ -359,15 +389,25 @@ module.exports = {
                                                 }
                                             }
                                             if (callback) {
-                                                await axios.post(callback, {
-                                                    "order": order,
-                                                    "pay": true,
-                                                    "node": getIPAdress()
-                                                }).then(response => {
-                                                    console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
-                                                }).catch(e => {
-                                                    console.log(now(), e, "充值成功无法回调服务器")
-                                                })
+                                                let postCallbackCount = 1;
+                                                let postCallback = async function () {
+                                                    await axios.post(callback, {
+                                                        "order": order,
+                                                        "pay": true,
+                                                        "node": getIPAdress()
+                                                    }).then(response => {
+                                                        console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
+                                                    }).catch(e => {
+                                                        if (postCallbackCount <= 2) {
+                                                            setTimeout(async function () {
+                                                                await postCallback();
+                                                            }, 1000 * postCallbackCount);
+                                                        }
+                                                        console.log(now(), e, `充值成功无法回调服务器、重试第 ${postCallbackCount} 次`)
+                                                        postCallbackCount += 1;
+                                                    })
+                                                }
+                                                await postCallback();
                                             }
                                         }
                                     });
@@ -752,15 +792,25 @@ module.exports = {
                         }
                         await browser.close()
                         if (callback) {
-                            await axios.post(callback, {
-                                "order": order,
-                                "pay": true,
-                                "node": getIPAdress()
-                            }).then(response => {
-                                console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
-                            }).catch(e => {
-                                console.log(now(), e, "充值成功无法回调服务器")
-                            })
+                            let postCallbackCount = 1;
+                            let postCallback = async function () {
+                                await axios.post(callback, {
+                                    "order": order,
+                                    "pay": true,
+                                    "node": getIPAdress()
+                                }).then(response => {
+                                    console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
+                                }).catch(e => {
+                                    if (postCallbackCount <= 2) {
+                                        setTimeout(async function () {
+                                            await postCallback();
+                                        }, 1000 * postCallbackCount);
+                                    }
+                                    console.log(now(), e, `充值成功无法回调服务器、重试第 ${postCallbackCount} 次`)
+                                    postCallbackCount += 1;
+                                })
+                            }
+                            await postCallback();
                         }
                     }
                     intervalCount += 1;
