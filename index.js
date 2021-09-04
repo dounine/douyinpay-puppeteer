@@ -95,7 +95,7 @@ const mime = require('mime-types');
         let body = ctx.request.body;
         let order = body.order;
         let timeout = body.timeout;
-        let callback = body.callback;
+        let thisCallback = body.callback;
         let h = headless !== undefined ? headless === 'true' : true
         ctx.response.body = await new Promise((httpResolve, reject) => {
             cluster.queue(async ({page}) => {
@@ -105,7 +105,7 @@ const mime = require('mime-types');
                         page, data: {
                             order,
                             timeout,
-                            callback,
+                            callback: callback || thisCallback,
                         },
                         pageResolve
                     });
