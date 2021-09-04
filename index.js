@@ -10,12 +10,13 @@ const app = new Koa();
 const router = new Router();
 const fsPromise = fs.promises;
 const server_port = process.env.SERVER_PORT || 3000;
-const headless = process.env.HEADLESS || true;
+const headless = process.env.HEADLESS;
 const callback = process.env.CALLBACK;
 const mime = require('mime-types');
 
 (async () => {
-    let cluster = await clusterPuppeteer({headless});
+    let h = headless !== undefined ? headless === 'true' : true
+    let cluster = await clusterPuppeteer({headless: h});
     let open_douyin = async function open({cluster}) {
         cluster.queue(async ({page}) => {
             let cookieString = await fsPromise.readFile("./cookie_douyin.json");
@@ -95,11 +96,12 @@ const mime = require('mime-types');
         let order = body.order;
         let timeout = body.timeout;
         let callback = body.callback;
+        let h = headless !== undefined ? headless === 'true' : true
         ctx.response.body = await new Promise((httpResolve, reject) => {
             cluster.queue(async ({page}) => {
                 let pageResult = new Promise(async (pageResolve, pageReject) => {
                     let result = await douyin({
-                        headless,
+                        headless:h,
                         page, data: {
                             order,
                             timeout,

@@ -54,11 +54,11 @@ module.exports = {
     clusterPuppeteer: async function ({headless}) {
         return await Cluster.launch({
             puppeteer: puppeteer,
-            concurrency: Cluster.CONCURRENCY_PAGE,
+            concurrency: Cluster.CONCURRENCY_CONTEXT,
             maxConcurrency: 30,
             timeout: 60000,
             puppeteerOptions: {
-                headless,
+                headless: headless,
                 args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             }
         });
@@ -190,6 +190,15 @@ module.exports = {
                     height: 1500
                 });
                 await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
+                await page.evaluate(() => {
+                    let json = {};
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        console.log('remove key', key)
+                        json[key] = localStorage.getItem(key);
+                    }
+                    return json;
+                });
                 console.log(now(), `open douyin time -> ` + (now().getTime() - start.getTime()) + "ms")
                 {
                     timeoutSetup = "switchAccountButton";
