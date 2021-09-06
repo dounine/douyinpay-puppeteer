@@ -5,26 +5,7 @@ const mineType = require('mime-types');
 const os = require('os');
 const axios = require("axios");
 const {Cluster} = require('puppeteer-cluster');
-// axios.defaults.retry = 4;
-// axios.defaults.retryDelay = 1000;
-// const headless = false;
-// axios.interceptors.response.use(undefined, function axiosRetryInterceptor(err) {
-//     let config = err.config;
-//     if (!config || !config.retry) return Promise.reject(err);
-//     config.__retryCount = config.__retryCount || 0;
-//     if (config.__retryCount >= config.retry) {
-//         return Promise.reject(err);
-//     }
-//     config.__retryCount += 1;
-//     let backoff = new Promise(function (resolve) {
-//         setTimeout(function () {
-//             resolve();
-//         }, config.retryDelay || 1);
-//     });
-//     return backoff.then(function () {
-//         return axios(config);
-//     });
-// });
+
 function now() {
     let time = new Date();
     time.setHours(time.getHours() + 8);
@@ -59,6 +40,10 @@ module.exports = {
             timeout: 60000,
             puppeteerOptions: {
                 headless: headless,
+                defaultViewport: {
+                    width: 800,
+                    height: 1500
+                },
                 args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             }
         });
@@ -185,10 +170,10 @@ module.exports = {
                 const cookieString = await fs.readFile("./cookie_douyin.json");
                 const cookies = JSON.parse(cookieString);
                 await page.setCookie(...cookies);
-                await page.setViewport({
-                    width: 800,
-                    height: 1500
-                });
+                // await page.setViewport({
+                //     width: 800,
+                //     height: 1500
+                // });
                 await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
                 await page.evaluate(() => {
                     let json = {};
