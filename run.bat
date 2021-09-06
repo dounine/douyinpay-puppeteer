@@ -1,4 +1,5 @@
 SET SERVER_PORT=30000
 SET SERVER_DOMAIN=http://192.168.0.39:30000
 SET HEADLESS=false
+SET CALLBACK=http://192.168.1.182:30000/api/order/update
 node index.js
