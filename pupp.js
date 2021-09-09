@@ -386,7 +386,6 @@ module.exports = {
                                 try {
                                     await fs.unlink(qrcodePath)
                                 } catch (ee) {
-                                    console.error(ee)
                                 }
                             }
                             if (callback) {
@@ -426,7 +425,6 @@ module.exports = {
                                                 try {
                                                     await fs.unlink(qrcodePath)
                                                 } catch (ee) {
-                                                    console.error(ee)
                                                 }
                                             }
                                             if (callback) {
