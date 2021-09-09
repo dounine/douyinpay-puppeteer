@@ -296,6 +296,272 @@ module.exports = {
             }
         })
     },
+    douyin2: async function ({headless, page, data, pageResolve}) {
+        return new Promise(async (resolve, reject) => {
+            const {order, timeout = 8000, callback} = data;
+            const {orderId, id, money} = order;
+            const start = now();
+            let timeoutSetup = "";
+            const qrcodePath = `./qrcode/${orderId}.png`;
+            let success = false;
+            let successTime = now().getTime();
+            let timer = setTimeout(async () => {
+                if (success) {
+                    try {
+                        await fs.unlink(qrcodePath)
+                    } catch (ee) {
+                        console.error(now(), ee)
+                    }
+                }
+                if (!success) {
+                    console.log(now(), `充值超时、请排查 -> ${timeoutSetup} -> ${JSON.stringify(data)}`)
+                    pageResolve(false);
+                    resolve({
+                        "message": "timeout",
+                        "setup": timeoutSetup,
+                        "node": getIPAdress()
+                    });
+                }
+            }, timeout - (now().getTime() - start.getTime()))
+            await page.setRequestInterception(true);
+            let intervalQuery = null;
+            page.on('response', async response => {
+                const url = response.url();
+                if (url.includes('www.douyin.com/webcast/wallet_api/diamond_buy_external_safe')) {
+                    let data = await response.json();
+                    if (data.status_code !== 0) {
+                        resolve({
+                            "message": data.data.prompts,
+                            "setup": timeoutSetup,
+                            "code": data.status_code,
+                            "node": getIPAdress()
+                        })
+                        pageResolve(false);
+                    }
+                    console.log('finish', data);
+                } else if (url.includes("https://tp-pay.snssdk.com/gateway-cashier/tp.cashier.trade_confirm")) {
+                    let data = await response.json();
+                    let pay_params = data.data.pay_params;
+                    if (pay_params.ptcode === 'wx') {
+                        let wechatPayInfo = JSON.parse(pay_params.data);
+                        success = true;
+                        successTime = now().getTime();
+                        clearTimeout(timer);
+                        resolve({
+                            "codeUrl": wechatPayInfo.code_url,
+                            "order": order,
+                            "code": 0,
+                            "node": getIPAdress()
+                        })
+                    }
+                }
+            });
+            page.on("request", async interceptedRequest => {
+                let url = interceptedRequest.url();
+                if (url.includes("www.douyin.com/webcast/wallet_api/user_check")) {
+                    await interceptedRequest.respond({
+                        status: 200,
+                        contentType: 'application/json; charset=utf-8',
+                        body: JSON.stringify({
+                            "data": {
+                                "is_need_remind": false,
+                                "message": ""
+                            },
+                            "extra": {
+                                "now": new Date().getTime(),
+                                "user_bind_mobile": true
+                            },
+                            "status_code": 0
+                        })
+                    })
+                } else if (url.includes("tp.cashier.trade_query") && intervalQuery == null && success) {
+                    let data = interceptedRequest.postData();
+                    let intervalCount = 0;
+                    let callBackSuccess = false;
+                    intervalQuery = setInterval(async () => {
+                        if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
+                            console.log(now(), "not pay", JSON.stringify(order))
+                            clearInterval(intervalQuery);
+                            if (success) {
+                                try {
+                                    await fs.unlink(qrcodePath)
+                                } catch (ee) {
+                                    console.error(ee)
+                                }
+                            }
+                            if (callback) {
+                                let postCallbackCount = 1;
+                                let postCallback = async function () {
+                                    await axios.post(callback, {
+                                        "order": order,
+                                        "pay": false,
+                                        "node": getIPAdress()
+                                    }).then(response => {
+                                        console.log(now(), "超时未支付回调结果：" + JSON.stringify(response.data))
+                                    }).catch(e => {
+                                        if (postCallbackCount <= 2) {
+                                            setTimeout(async function () {
+                                                await postCallback();
+                                            }, 1000 * postCallbackCount);
+                                        }
+                                        console.log(now(), e, `充值失败无法回调服务器、重试第 ${postCallbackCount} 次`)
+                                        postCallbackCount += 1;
+                                    })
+                                }
+                                await postCallback();
+                            }
+                        } else {
+                            if (intervalQuery) {
+                                await axios.post(
+                                    "https://tp-pay.snssdk.com/gateway-cashier/tp.cashier.trade_query",
+                                    data
+                                )
+                                    .then(async res => {
+                                        if (res.data.data && res.data.data.trade_info.status === "SUCCESS" && !callBackSuccess) {
+                                            callBackSuccess = true;
+                                            console.log(now(), "pay success", JSON.stringify(order))
+                                            clearInterval(intervalQuery);
+                                            intervalQuery = null;
+                                            if (success) {
+                                                try {
+                                                    await fs.unlink(qrcodePath)
+                                                } catch (ee) {
+                                                    console.error(ee)
+                                                }
+                                            }
+                                            if (callback) {
+                                                let postCallbackCount = 1;
+                                                let postCallback = async function () {
+                                                    await axios.post(callback, {
+                                                        "order": order,
+                                                        "pay": true,
+                                                        "node": getIPAdress()
+                                                    }).then(response => {
+                                                        console.log(now(), "充值成功回调结果：" + JSON.stringify(response.data))
+                                                    }).catch(e => {
+                                                        if (postCallbackCount <= 2) {
+                                                            setTimeout(async function () {
+                                                                await postCallback();
+                                                            }, 1000 * postCallbackCount);
+                                                        }
+                                                        console.log(now(), e, `充值成功无法回调服务器、重试第 ${postCallbackCount} 次`)
+                                                        postCallbackCount += 1;
+                                                    })
+                                                }
+                                                await postCallback();
+                                            }
+                                        }
+                                    });
+                            }
+                        }
+                        intervalCount += 1;
+                    }, 1000);
+                    pageResolve(false);
+                    await interceptedRequest.continue();
+                } else {
+                    await interceptedRequest.continue();
+                }
+            });
+            console.log(now(), `${orderId} open page time -> ` + (now().getTime() - start.getTime()) + "ms")
+            try {
+                const cookieString = await fs.readFile("./cookie_douyin.json");
+                const cookies = JSON.parse(cookieString);
+                await page.setCookie(...cookies);
+                await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
+                await page.evaluate(() => {
+                    let json = {};
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        console.log('remove key', key)
+                        json[key] = localStorage.getItem(key);
+                    }
+                    return json;
+                });
+                console.log(now(), `open douyin time -> ` + (now().getTime() - start.getTime()) + "ms")
+                {
+                    timeoutSetup = "switchAccountButton";
+                    //点击切换帐号
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.user-info > div.btn");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "inputAccount";
+                    //输入帐号
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("aria/输入抖音号或绑定的手机号");
+                    await element.type(id);
+                }
+                {
+                    timeoutSetup = "inputAccount";
+                    //点击确认
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.select-wrap > div.input-wrap > div.confirm-btn");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "waitAccountId";
+                    //点击用户ID、等待ID出来
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.user-info > div.info > p");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "clickCustomMoneyInput";
+                    //点击自定义金额
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.combo-list > div.customer-recharge > span.des");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "inputMoney";
+                    //输入金额
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.combo-list > div.customer-recharge.active > div.money-container > div > input");
+                    await element.type(money.toString());
+                }
+                {
+                    timeoutSetup = "clickPayButton";
+                    //确认支付
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div.pay-button");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "clickWechatPay";
+                    //点击微信支付
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div.pay-channel-wx");
+                    await element.click();
+                }
+                let config = headless === false ? {
+                    clip: {
+                        x: 226,
+                        y: 506,
+                        width: 200,
+                        height: 200
+                    }
+                } : {};
+            } catch (e) {
+                console.error(now(), "充值异常请排查：" + e, order)
+                resolve({
+                    "message": "fail",
+                    "setup": timeoutSetup,
+                    "code": -1,
+                    "node": getIPAdress()
+                })
+                pageResolve(false);
+            }
+        })
+    },
     huoshan: async function ({headless, page, data, pageResolve}) {
         return new Promise(async (resolve, reject) => {
             const {order, timeout = 8000, callback} = data;

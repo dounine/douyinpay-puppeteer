@@ -2,7 +2,7 @@ const Koa = require('koa');
 const Router = require('koa-router');
 const fs = require("fs");
 const path = require("path");
-const {nowTime, login_douyin, login_huoshan, myIp, clusterPuppeteer, douyin, huoshan} = require("./pupp");
+const {nowTime, login_douyin, login_huoshan, myIp, clusterPuppeteer, douyin, douyin2, huoshan} = require("./pupp");
 const bodyParser = require('koa-bodyparser');
 const static = require('koa-static-router');
 const cors = require('koa2-cors');
@@ -100,8 +100,8 @@ const mime = require('mime-types');
         ctx.response.body = await new Promise((httpResolve, reject) => {
             cluster.queue(async ({page}) => {
                 let pageResult = new Promise(async (pageResolve, pageReject) => {
-                    let result = await douyin({
-                        headless:h,
+                    let result = await douyin2({
+                        headless: h,
                         page, data: {
                             order,
                             timeout,
