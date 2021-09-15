@@ -3,6 +3,7 @@ const Router = require('koa-router');
 const fs = require("fs");
 const path = require("path");
 const {nowTime, login_douyin, login_huoshan, myIp, clusterPuppeteer, douyin, douyin2, huoshan} = require("./pupp");
+const {kuaishou} = require('./kuaishou');
 const bodyParser = require('koa-bodyparser');
 const static = require('koa-static-router');
 const cors = require('koa2-cors');
@@ -101,6 +102,30 @@ const mime = require('mime-types');
             cluster.queue(async ({page}) => {
                 let pageResult = new Promise(async (pageResolve, pageReject) => {
                     let result = await douyin2({
+                        headless: h,
+                        page, data: {
+                            order,
+                            timeout,
+                            callback: callback || thisCallback,
+                        },
+                        pageResolve
+                    });
+                    httpResolve(result)
+                })
+                await pageResult;
+            })
+        })
+    });
+    router.post('/qrcode/kuaishou', async (ctx, next) => {
+        let body = ctx.request.body;
+        let order = body.order;
+        let timeout = body.timeout;
+        let thisCallback = body.callback;
+        let h = headless !== undefined ? headless === 'true' : true
+        ctx.response.body = await new Promise((httpResolve, reject) => {
+            cluster.queue(async ({page}) => {
+                let pageResult = new Promise(async (pageResolve, pageReject) => {
+                    let result = await kuaishou({
                         headless: h,
                         page, data: {
                             order,
