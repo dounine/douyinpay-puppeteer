@@ -41,7 +41,7 @@ module.exports = {
             puppeteerOptions: {
                 headless: headless,
                 defaultViewport: {
-                    width: 800,
+                    width: 900,
                     height: 1500
                 },
                 args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
@@ -465,7 +465,7 @@ module.exports = {
                 const cookieString = await fs.readFile("./cookie_douyin.json");
                 const cookies = JSON.parse(cookieString);
                 await page.setCookie(...cookies);
-                await page.goto("https://www.douyin.com/falcon/webcast_openpc/pages/douyin_recharge/index.html");
+                await page.goto("https://www.douyin.com/pay");
                 await page.evaluate(() => {
                     let json = {};
                     for (let i = 0; i < localStorage.length; i++) {
@@ -508,36 +508,15 @@ module.exports = {
                     const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.user-info > div.info > p");
                     await element.click();
                 }
+                await page.waitForTimeout(500);
                 {
                     timeoutSetup = "clickCustomMoneyInput";
                     //点击自定义金额
                     const targetPage = page;
                     const frame = targetPage.mainFrame();
-                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.combo-list > div.customer-recharge > span.des");
-                    await element.click();
-                }
-                {
-                    timeoutSetup = "inputMoney";
-                    //输入金额
-                    const targetPage = page;
-                    const frame = targetPage.mainFrame();
-                    const element = await frame.waitForSelector("div#root > div > div.page-box.douyin > div > div.combo-list > div.customer-recharge.active > div.money-container > div > input");
-                    await element.type(money.toString());
-                }
-                {
-                    timeoutSetup = "clickPayButton";
-                    //确认支付
-                    const targetPage = page;
-                    const frame = targetPage.mainFrame();
-                    const element = await frame.waitForSelector("div.pay-button");
-                    await element.click();
-                }
-                {
-                    timeoutSetup = "clickWechatPay";
-                    //点击微信支付
-                    const targetPage = page;
-                    const frame = targetPage.mainFrame();
-                    const element = await frame.waitForSelector("div.pay-channel-wx");
+                    // const element = await frame.waitForSelector("div.customer-recharge");
+                    // const element = await frame.waitForSelector("div.combo-list > div:last-child")
+                    const element = await frame.waitForSelector("span.name")
                     await element.click();
                 }
                 let config = headless === false ? {
@@ -878,6 +857,25 @@ module.exports = {
             }, 1000)
             resolve("./qrcode/login.png");
         })
+    },
+    kuaishou: async function ({headless, page, data, pageResolve}) {
+        await page.goto('https://pay.ssl.kuaishou.com/pay')
+
+        await page.waitForSelector('ul > li > .item-value > .ks-number > input')
+        await page.click('ul > li > .item-value > .ks-number > input')
+
+        await page.waitForSelector('ul > li > .item-value > .ks-number > .confirm-btn')
+        await page.click('ul > li > .item-value > .ks-number > .confirm-btn')
+
+        await page.waitForSelector('.money-cell > div > .recharge > .recharge-gear > .other-recharge-text')
+        await page.click('.money-cell > div > .recharge > .recharge-gear > .other-recharge-text')
+
+        await page.waitForSelector('.pay-wrap > ul > li > div > .go-button')
+        await page.click('.pay-wrap > ul > li > div > .go-button')
+
+        await page.waitForSelector('.ebank-pay-info > .ebank-pay-info-qr > div > .qr-box > .ebank-pay-info-qrcode')
+        await page.click('.ebank-pay-info > .ebank-pay-info-qr > div > .qr-box > .ebank-pay-info-qrcode')
+
     },
     qrcode: async function (data) {
         return new Promise(async (resolve, reject) => {
