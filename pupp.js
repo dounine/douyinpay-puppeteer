@@ -519,6 +519,30 @@ module.exports = {
                     const element = await frame.waitForSelector("span.name")
                     await element.click();
                 }
+                {
+                    timeoutSetup = "inputMoney";
+                    //输入金额
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div.customer-recharge > div.money-container > div > input");
+                    await element.type(money.toString());
+                }
+                {
+                    timeoutSetup = "clickPayButton";
+                    //确认支付
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div.pay-button");
+                    await element.click();
+                }
+                {
+                    timeoutSetup = "clickWechatPay";
+                    //点击微信支付
+                    const targetPage = page;
+                    const frame = targetPage.mainFrame();
+                    const element = await frame.waitForSelector("div.pay-channel-wx");
+                    await element.click();
+                }
                 let config = headless === false ? {
                     clip: {
                         x: 226,
