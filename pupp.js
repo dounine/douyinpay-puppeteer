@@ -842,6 +842,42 @@ module.exports = {
             resolve("./qrcode/login.png");
         })
     },
+    login_douyin2: async function (url) {
+        return new Promise(async (resolve, reject) => {
+            const browser = await puppeteer.launch({
+                headless: true,
+                devtools: false,
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--shm-size=3gb']
+            });
+            const page = await browser.newPage();
+            await page.goto("https://www.douyin.com/pay");
+            await page.waitForTimeout(1000)
+            const img = await page.waitForSelector(".qrcode-img")
+            const loginPath = `./qrcode/login.png`;
+            await img.screenshot({
+                path: loginPath, omitBackground: true
+            });
+            let intervalCount = 0;
+            const interval = setInterval(async () => {
+                if (intervalCount > 55) {
+                    console.log(now(), "超时未登录")
+                    clearInterval(interval);
+                    await browser.close();
+                } else if (page.url().includes("is_new_connect")) {
+                    console.log(now(), "登录成功")
+                    clearInterval(interval);
+                    const cookies = await page.cookies();
+                    const element = await page.waitForSelector("p.uid");
+                    let value = await page.evaluate(el => el.textContent, element);
+                    console.log(value);
+                    await fs.writeFile(`./account/${value.split("抖音号：").slice(-1)[0]}.json`, JSON.stringify(cookies))
+                    await browser.close()
+                }
+                intervalCount += 1
+            }, 1000)
+            resolve("./qrcode/login.png");
+        })
+    },
     login_huoshan: async function (url) {
         return new Promise(async (resolve, reject) => {
             const browser = await puppeteer.launch({

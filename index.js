@@ -2,7 +2,7 @@ const Koa = require('koa');
 const Router = require('koa-router');
 const fs = require("fs");
 const path = require("path");
-const {nowTime, login_douyin, login_huoshan, myIp, clusterPuppeteer, douyin, douyin2, huoshan} = require("./pupp");
+const {nowTime, login_douyin, login_douyin2, login_huoshan, myIp, clusterPuppeteer, douyin, douyin2, huoshan} = require("./pupp");
 const {kuaishou} = require('./kuaishou');
 const bodyParser = require('koa-bodyparser');
 const static = require('koa-static-router');
@@ -63,6 +63,12 @@ const mime = require('mime-types');
         ctx.response.body = {
             "node": myIp()
         }
+    })
+    router.get('/login/save/douyin.png', async (ctx, next) => {
+        const result = await login_douyin2(ctx.request.header.url);
+        let mimeType = mime.lookup(path.join(__dirname, result));
+        ctx.set('content-type', mimeType);
+        ctx.response.body = fs.createReadStream(path.join(__dirname, result));
     })
     router.get('/login/douyin.png', async (ctx, next) => {
         const result = await login_douyin(ctx.request.header.url);
