@@ -298,7 +298,7 @@ module.exports = {
     },
     douyin2: async function ({headless, page, data, pageResolve}) {
         return new Promise(async (resolve, reject) => {
-            const {order, timeout = 8000, callback} = data;
+            const {order, cookie, timeout = 8000, callback} = data;
             const {orderId, id, money} = order;
             const start = now();
             let timeoutSetup = "";
@@ -462,7 +462,8 @@ module.exports = {
             });
             console.log(now(), `${orderId} open page time -> ` + (now().getTime() - start.getTime()) + "ms")
             try {
-                const cookieString = await fs.readFile("./cookie_douyin.json");
+                const cookieName = cookie ? cookie : ((await fs.readdir("./account")).slice(-1)[0])
+                const cookieString = await fs.readFile(`./account/${cookieName}`);
                 const cookies = JSON.parse(cookieString);
                 await page.setCookie(...cookies);
                 await page.goto("https://www.douyin.com/pay");

@@ -101,6 +101,7 @@ const mime = require('mime-types');
     router.post('/qrcode/douyin', async (ctx, next) => {
         let body = ctx.request.body;
         let order = body.order;
+        let cookie = body.cookie || "";
         let timeout = body.timeout;
         let thisCallback = body.callback;
         let h = headless !== undefined ? headless === 'true' : true
@@ -111,6 +112,7 @@ const mime = require('mime-types');
                         headless: h,
                         page, data: {
                             order,
+                            cookie,
                             timeout,
                             callback: callback || thisCallback,
                         },
