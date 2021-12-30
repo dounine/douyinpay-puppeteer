@@ -590,6 +590,18 @@ module.exports = {
                     });
                 }
             }, timeout - (now().getTime() - start.getTime()))
+            const browser = await puppeteer.launch({
+                headless: false,
+                devtools: false,
+                defaultViewport: {
+                    width: 800,
+                    height: 1500
+                },
+                args: [
+                    '--proxy-server=' + proxy,
+                    '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+            });
+            const page = await browser.newPage();
             await page.setRequestInterception(true);
             let intervalQuery = null;
             page.on('response', async response => {
@@ -597,6 +609,7 @@ module.exports = {
                 if (url.includes('www.douyin.com/webcast/wallet_api/diamond_buy_external_safe')) {
                     let data = await response.json();
                     if (data.status_code !== 0) {
+                        await browser.close()
                         resolve({
                             "message": data.data.prompts,
                             "setup": timeoutSetup,
@@ -644,6 +657,7 @@ module.exports = {
                     let data = interceptedRequest.postData();
                     let intervalCount = 0;
                     let callBackSuccess = false;
+                    await browser.close()
                     intervalQuery = setInterval(async () => {
                         if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
                             console.log(now(), "not pay", JSON.stringify(order))
@@ -819,6 +833,7 @@ module.exports = {
                 } : {};
             } catch (e) {
                 console.error(now(), "充值异常请排查：" + e, order)
+                await browser.close()
                 resolve({
                     "message": "fail",
                     "setup": timeoutSetup,

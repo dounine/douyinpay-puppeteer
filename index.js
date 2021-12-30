@@ -149,21 +149,8 @@ const mime = require('mime-types');
         let thisCallback = body.callback;
         let h = headless !== undefined ? headless === 'true' : true
         ctx.response.body = await new Promise(async (httpResolve, reject) => {
-            const browser = await puppeteer.launch({
-                headless: false,
-                devtools: false,
-                defaultViewport: {
-                    width: 800,
-                    height: 1500
-                },
-                args: [
-                    '--proxy-server=' + proxy,
-                    '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
-            });
-            const page = await browser.newPage();
             let result = await douyin3({
-                headless: h,
-                page, data: {
+                headless: h, data: {
                     order,
                     cookie,
                     proxy,
@@ -171,7 +158,6 @@ const mime = require('mime-types');
                     callback: callback || thisCallback,
                 }
             });
-            await browser.close()
             httpResolve(result)
         })
     });
