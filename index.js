@@ -1,5 +1,6 @@
 const Koa = require('koa');
 const Router = require('koa-router');
+const puppeteer = require('puppeteer');
 const fs = require("fs");
 const path = require("path");
 const {
@@ -11,6 +12,7 @@ const {
     clusterPuppeteer,
     douyin,
     douyin2,
+    douyin3,
     huoshan
 } = require("./pupp");
 const {kuaishou} = require('./kuaishou');
@@ -112,30 +114,65 @@ const mime = require('mime-types');
             "node": myIp()
         };
     })
+    // router.post('/qrcode/douyin', async (ctx, next) => {
+    //     let body = ctx.request.body;
+    //     let order = body.order;
+    //     let cookie = body.cookie || "";
+    //     let timeout = body.timeout;
+    //     let thisCallback = body.callback;
+    //     let h = headless !== undefined ? headless === 'true' : true
+    //     ctx.response.body = await new Promise((httpResolve, reject) => {
+    //         cluster.queue(async ({page}) => {
+    //             let pageResult = new Promise(async (pageResolve, pageReject) => {
+    //                 let result = await douyin2({
+    //                     headless: h,
+    //                     page, data: {
+    //                         order,
+    //                         cookie,
+    //                         timeout,
+    //                         callback: callback || thisCallback,
+    //                     },
+    //                     pageResolve
+    //                 });
+    //                 httpResolve(result)
+    //             })
+    //             await pageResult;
+    //         })
+    //     })
+    // });
     router.post('/qrcode/douyin', async (ctx, next) => {
         let body = ctx.request.body;
         let order = body.order;
         let cookie = body.cookie || "";
+        let proxy = body.proxy || "";
         let timeout = body.timeout;
         let thisCallback = body.callback;
         let h = headless !== undefined ? headless === 'true' : true
-        ctx.response.body = await new Promise((httpResolve, reject) => {
-            cluster.queue(async ({page}) => {
-                let pageResult = new Promise(async (pageResolve, pageReject) => {
-                    let result = await douyin2({
-                        headless: h,
-                        page, data: {
-                            order,
-                            cookie,
-                            timeout,
-                            callback: callback || thisCallback,
-                        },
-                        pageResolve
-                    });
-                    httpResolve(result)
-                })
-                await pageResult;
-            })
+        ctx.response.body = await new Promise(async (httpResolve, reject) => {
+            const browser = await puppeteer.launch({
+                headless: false,
+                devtools: false,
+                defaultViewport: {
+                    width: 800,
+                    height: 1500
+                },
+                args: [
+                    '--proxy-server=' + proxy,
+                    '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+            });
+            const page = await browser.newPage();
+            let result = await douyin3({
+                headless: h,
+                page, data: {
+                    order,
+                    cookie,
+                    proxy,
+                    timeout,
+                    callback: callback || thisCallback,
+                }
+            });
+            await browser.close()
+            httpResolve(result)
         })
     });
     router.post('/qrcode/kuaishou', async (ctx, next) => {
