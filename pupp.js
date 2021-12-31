@@ -564,7 +564,7 @@ module.exports = {
             }
         })
     },
-    douyin3: async function ({headless, page, data}) {
+    douyin3: async function ({headless, data}) {
         return new Promise(async (resolve, reject) => {
             const {order, proxy, cookie, timeout = 8000, callback} = data;
             const {orderId, id, money} = order;
@@ -598,7 +598,7 @@ module.exports = {
                     height: 1500
                 },
                 args: [
-                    '--proxy-server=' + proxy,
+                    // '--proxy-server=' + proxy,
                     '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
             });
             const page = await browser.newPage();
@@ -659,6 +659,7 @@ module.exports = {
                     let callBackSuccess = false;
                     await browser.close()
                     intervalQuery = setInterval(async () => {
+                        console.log('interval')
                         if (intervalCount > (60 - (((successTime - start.getTime()) / 1000) | 0))) {
                             console.log(now(), "not pay", JSON.stringify(order))
                             clearInterval(intervalQuery);
